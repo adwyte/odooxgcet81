@@ -12,10 +12,18 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [showSort, setShowSort] = useState(false);
+  const [sortBy, setSortBy] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const itemsPerPage = 10;
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -24,10 +32,17 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       const [productsData, categoriesData] = await Promise.all([
-        productsApi.getProducts(),
+        productsApi.getProducts({
+          search: searchQuery,
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+          sort_by: sortBy || undefined,
+          skip: (currentPage - 1) * itemsPerPage,
+          limit: itemsPerPage
+        }),
         productsApi.getCategories()
       ]);
       setProducts(productsData);
+      setHasMore(productsData.length === itemsPerPage);
       setCategories(categoriesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
@@ -38,7 +53,12 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentPage, searchQuery, selectedCategory, sortBy]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const handleDeleteClick = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -73,13 +93,16 @@ export default function ProductsPage() {
 
   const productCategories = ['All', ...categories.map(c => c.name)];
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesPublished = user?.role === 'customer' ? product.is_published : true;
-    return matchesSearch && matchesCategory && matchesPublished;
-  });
+  const sortOptions = [
+    { label: 'Newest First', value: '' },
+    { label: 'Price: Low to High', value: 'price_asc' },
+    { label: 'Price: High to Low', value: 'price_desc' },
+    { label: 'Quantity: Low to High', value: 'quantity_asc' },
+    { label: 'Quantity: High to Low', value: 'quantity_desc' },
+  ];
+
+  /* Client-side filtering removed as we now filter on backend */
+  const filteredProducts = products;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -103,7 +126,7 @@ export default function ProductsPage() {
     return { price: '-', unit: '' };
   };
 
-  if (loading) {
+  if (loading && currentPage === 1 && products.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -181,6 +204,36 @@ export default function ProductsPage() {
             )}
           </div>
 
+          {/* Sort Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSort(!showSort)}
+              className="btn btn-secondary w-full lg:w-auto"
+            >
+              <Filter size={18} />
+              Sort
+              <ChevronDown size={16} className={`transition-transform ${showSort ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showSort && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-primary-200 rounded-xl shadow-lg py-2 z-10">
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSortBy(option.value);
+                      setShowSort(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 ${sortBy === option.value ? 'bg-primary-100 font-medium' : ''
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* View Toggle */}
           <div className="flex border border-primary-200 rounded-lg overflow-hidden">
             <button
@@ -201,7 +254,7 @@ export default function ProductsPage() {
 
       {/* Results count */}
       <p className="text-sm text-primary-500">
-        Showing {filteredProducts.length} of {products.length} products
+        Showing {filteredProducts.length} products (Page {currentPage})
       </p>
 
       {/* Products Grid/List */}
@@ -393,6 +446,27 @@ export default function ProductsPage() {
           <p className="text-primary-500 mt-1">Try adjusting your search or filter criteria</p>
         </div>
       )}
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center gap-4 mt-8">
+        <button
+          onClick={() => setCurrentPage(Date.now() > 0 ? currentPage - 1 : 1)}
+          disabled={currentPage === 1 || loading}
+          className="btn btn-secondary"
+        >
+          Previous
+        </button>
+        <span className="flex items-center text-primary-600 font-medium">
+          Page {currentPage}
+        </span>
+        <button
+          onClick={() => setCurrentPage(Date.now() > 0 ? currentPage + 1 : 1)}
+          disabled={!hasMore || loading}
+          className="btn btn-secondary"
+        >
+          Next
+        </button>
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && productToDelete && (

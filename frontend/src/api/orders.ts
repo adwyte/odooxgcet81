@@ -94,11 +94,15 @@ class OrdersApi {
 
   async getOrders(params?: {
     status?: string;
+    paymentStatus?: string;
+    returnStatus?: string;
     skip?: number;
     limit?: number;
   }): Promise<Order[]> {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.append('status', params.status);
+    if (params?.paymentStatus) searchParams.append('payment_status', params.paymentStatus);
+    if (params?.returnStatus) searchParams.append('return_status', params.returnStatus);
     if (params?.skip) searchParams.append('skip', String(params.skip));
     if (params?.limit) searchParams.append('limit', String(params.limit));
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -154,6 +154,8 @@ def order_to_response(order: RentalOrder) -> OrderResponse:
 @router.get("", response_model=List[OrderResponse])
 async def get_orders(
     status: Optional[str] = None,
+    payment_status: Optional[str] = None,
+    return_status: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -176,6 +178,31 @@ async def get_orders(
         except ValueError:
             pass
     
+    if payment_status == 'paid':
+        # Paid orders are those where paid_amount >= total_amount
+        query = query.filter(RentalOrder.paid_amount >= RentalOrder.total_amount)
+    elif payment_status == 'unpaid':
+        query = query.filter(RentalOrder.paid_amount < RentalOrder.total_amount)
+    
+    if return_status == 'approaching':
+        # Approaching (within 24h) or Overdue
+        now = datetime.utcnow()
+        tomorrow = now + timedelta(days=1)
+        # return_date is set and (is in past OR is within next 24 hours)
+        # AND status is not returned/completed/cancelled
+        query = query.filter(
+            RentalOrder.return_date != None,
+            or_(
+                RentalOrder.return_date <= tomorrow,
+                RentalOrder.return_date < now
+            ),
+            RentalOrder.status.notin_([
+                OrderStatus.RETURNED, 
+                OrderStatus.COMPLETED, 
+                OrderStatus.CANCELLED
+            ])
+        )
+
     orders = query.order_by(RentalOrder.created_at.desc()).offset(skip).limit(limit).all()
     return [order_to_response(o) for o in orders]
 

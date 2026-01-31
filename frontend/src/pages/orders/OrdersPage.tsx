@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Truck, 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  Eye, 
-  Calendar, 
+import {
+  Truck,
+  Search,
+  Filter,
+  ChevronDown,
+  Eye,
+  Calendar,
   DollarSign,
   Package,
   RotateCcw,
@@ -42,7 +42,7 @@ export default function OrdersPage() {
   const { user } = useAuth();
   const location = useLocation();
   const orderPlaced = location.state?.orderPlaced;
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -51,13 +51,26 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const queryParams = new URLSearchParams(location.search);
+  const filterParam = queryParams.get('filter');
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const data = await ordersApi.getOrders(
-          statusFilter !== 'all' ? { status: statusFilter } : {}
-        );
+        const params: any = {};
+
+        if (statusFilter !== 'all') {
+          params.status = statusFilter;
+        }
+
+        if (filterParam === 'paid') {
+          params.paymentStatus = 'paid';
+        } else if (filterParam === 'approaching') {
+          params.returnStatus = 'approaching';
+        }
+
+        const data = await ordersApi.getOrders(params);
         setOrders(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load orders');
@@ -65,9 +78,9 @@ export default function OrdersPage() {
         setLoading(false);
       }
     };
-    
+
     fetchOrders();
-  }, [statusFilter]);
+  }, [statusFilter, filterParam]);
 
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -114,7 +127,7 @@ export default function OrdersPage() {
                 <p className="text-sm text-green-700">Your rental order has been confirmed. You'll receive updates via email.</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowSuccessMessage(false)}
               className="text-green-600 hover:text-green-700"
             >
@@ -127,8 +140,16 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary-900">Rental Orders</h1>
-          <p className="text-primary-500">Track and manage your rental orders</p>
+          <div>
+            <h1 className="text-2xl font-bold text-primary-900">
+              {filterParam === 'paid' ? 'Invoiced & Paid Orders' :
+                filterParam === 'approaching' ? 'Returns Management' : 'Rental Orders'}
+            </h1>
+            <p className="text-primary-500">
+              {filterParam === 'paid' ? 'View your completed transactions' :
+                filterParam === 'approaching' ? 'Track approaching and overdue returns' : 'Track and manage your rental orders'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -145,7 +166,7 @@ export default function OrdersPage() {
               className="input pl-10"
             />
           </div>
-          
+
           <div className="relative">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -155,7 +176,7 @@ export default function OrdersPage() {
               {statusFilter === 'all' ? 'All Status' : statusFilter.replace('_', ' ')}
               <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {showFilters && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-primary-200 rounded-xl shadow-lg py-2 z-10">
                 {['all', 'pending', 'confirmed', 'picked_up', 'returned', 'completed', 'cancelled'].map((status) => (
@@ -165,9 +186,8 @@ export default function OrdersPage() {
                       setStatusFilter(status as OrderStatus | 'all');
                       setShowFilters(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${
-                      statusFilter === status ? 'bg-primary-100 font-medium' : ''
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${statusFilter === status ? 'bg-primary-100 font-medium' : ''
+                      }`}
                   >
                     {status === 'all' ? 'All Status' : status.replace('_', ' ')}
                   </button>
@@ -199,7 +219,7 @@ export default function OrdersPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div className="flex items-center gap-1.5 text-primary-600">
                       <Calendar size={14} />
@@ -253,20 +273,19 @@ export default function OrdersPage() {
                   const currentIdx = statusOrder.indexOf(order.status);
                   const isCompleted = idx <= currentIdx;
                   const isCurrent = idx === currentIdx;
-                  
+
                   return (
                     <div key={step} className="flex items-center flex-1">
                       <div className={`flex flex-col items-center ${idx > 0 ? 'flex-1' : ''}`}>
                         {idx > 0 && (
                           <div className={`h-0.5 w-full mb-2 ${isCompleted ? 'bg-green-500' : 'bg-primary-200'}`} />
                         )}
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                          isCompleted
-                            ? 'bg-green-500 text-white'
-                            : isCurrent
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${isCompleted
+                          ? 'bg-green-500 text-white'
+                          : isCurrent
                             ? 'bg-primary-900 text-white'
                             : 'bg-primary-200 text-primary-500'
-                        }`}>
+                          }`}>
                           {isCompleted ? <CheckCircle size={14} /> : idx + 1}
                         </div>
                         <p className={`text-xs mt-1 ${isCompleted ? 'text-green-600 font-medium' : 'text-primary-500'}`}>
@@ -300,7 +319,7 @@ export default function OrdersPage() {
           </div>
           <h3 className="text-lg font-semibold text-primary-900">No orders found</h3>
           <p className="text-primary-500 mt-1">
-            {user?.role === 'customer' 
+            {user?.role === 'customer'
               ? 'Complete a checkout to create your first order'
               : 'No orders match your search criteria'}
           </p>

@@ -38,7 +38,7 @@ export default function SettingsPage() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: user?.phoneNumber || '',
+    phone: user?.phone || '',
     avatar: '',
     // Customer specific fields
     address: user?.address || '',
