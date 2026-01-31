@@ -58,10 +58,15 @@ def send_otp_email(to_email: str, otp: str):
     
     try:
         # Create secure connection with server and send email
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender_email, password)
-            server.sendmail(sender_email, to_email, message.as_string())
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, to_email, message.as_string())
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(sender_email, password)
+                server.sendmail(sender_email, to_email, message.as_string())
         return True
     except Exception as e:
         print(f"[ERROR] Failed to send email to {to_email}: {str(e)}")
