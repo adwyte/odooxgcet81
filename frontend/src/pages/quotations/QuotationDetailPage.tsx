@@ -185,10 +185,11 @@ export default function QuotationDetailPage() {
             }
 
             alert(`Successfully created ${createdOrders.length} order(s)!`);
-            // Navigate to the first order or orders list
+            // Navigate to payment page for the first order
             if (createdOrders.length === 1) {
-                navigate(`/orders/${createdOrders[0].id}`);
+                navigate(`/orders/${createdOrders[0].id}/pay`);
             } else {
+                // If multiple orders, let them find them in the list to pay
                 navigate('/orders');
             }
 

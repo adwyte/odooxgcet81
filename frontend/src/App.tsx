@@ -32,6 +32,7 @@ import QuotationsPage from './pages/quotations/QuotationsPage';
 import QuotationDetailPage from './pages/quotations/QuotationDetailPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
+import OrderPaymentPage from './pages/orders/OrderPaymentPage';
 import ReturnsPage from './pages/returns/ReturnsPage';
 import InvoicesPage from './pages/invoices/InvoicesPage';
 import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="/quotations/:id" element={<QuotationDetailPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
+              <Route path="/orders/:id/pay" element={<OrderPaymentPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
