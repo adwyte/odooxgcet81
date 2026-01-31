@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Download, 
@@ -8,10 +8,12 @@ import {
   Users,
   TrendingUp,
   TrendingDown,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockDashboardStats, mockOrders, mockProducts } from '../../data/mockData';
+import { dashboardApi, DashboardStats } from '../../api/dashboard';
+import { ordersApi, Order } from '../../api/orders';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 
 type ReportType = 'revenue' | 'products' | 'orders' | 'vendors';
@@ -21,6 +23,30 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [activeReport, setActiveReport] = useState<ReportType>('revenue');
   const [dateRange, setDateRange] = useState<DateRange>('month');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, ordersData] = await Promise.all([
+          dashboardApi.getStats(),
+          ordersApi.getOrders({ limit: 10 })
+        ]);
+        setStats(statsData);
+        setOrders(ordersData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load reports');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [dateRange]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -37,7 +63,7 @@ export default function ReportsPage() {
     ...(user?.role === 'admin' ? [{ id: 'vendors' as ReportType, label: 'Vendors', icon: <Users size={18} /> }] : []),
   ];
 
-  // Mock vendor performance data for admin
+  // Mock vendor performance data for admin (to be replaced with API later)
   const vendorPerformance = [
     { name: 'Vendor Inc', orders: 28, revenue: 85000, rating: 4.8 },
     { name: 'Equipment Pro', orders: 22, revenue: 62000, rating: 4.6 },
@@ -55,6 +81,26 @@ export default function ReportsPage() {
     { day: 'Sat', orders: 22, revenue: 35000 },
     { day: 'Sun', orders: 14, revenue: 21000 },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  const totalOrders = stats?.total_orders || 0;
+  const totalRevenue = stats?.total_revenue || 0;
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   return (
     <div className="space-y-6">
@@ -94,7 +140,7 @@ export default function ReportsPage() {
               <span className="ml-1">+12.5%</span>
             </div>
           </div>
-          <p className="text-2xl font-bold text-primary-900 mt-4">{formatPrice(mockDashboardStats.totalRevenue)}</p>
+          <p className="text-2xl font-bold text-primary-900 mt-4">{formatPrice(totalRevenue)}</p>
           <p className="text-sm text-primary-500">Total Revenue</p>
         </div>
 
@@ -108,7 +154,7 @@ export default function ReportsPage() {
               <span className="ml-1">+8.2%</span>
             </div>
           </div>
-          <p className="text-2xl font-bold text-primary-900 mt-4">{mockDashboardStats.totalOrders}</p>
+          <p className="text-2xl font-bold text-primary-900 mt-4">{totalOrders}</p>
           <p className="text-sm text-primary-500">Total Orders</p>
         </div>
 
@@ -122,7 +168,7 @@ export default function ReportsPage() {
               <span className="ml-1">+5.3%</span>
             </div>
           </div>
-          <p className="text-2xl font-bold text-primary-900 mt-4">{formatPrice(Math.round(mockDashboardStats.totalRevenue / mockDashboardStats.totalOrders))}</p>
+          <p className="text-2xl font-bold text-primary-900 mt-4">{formatPrice(Math.round(avgOrderValue))}</p>
           <p className="text-sm text-primary-500">Avg. Order Value</p>
         </div>
 
@@ -168,29 +214,33 @@ export default function ReportsPage() {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-primary-900">Revenue by Month</h3>
               <div className="space-y-4">
-                {mockDashboardStats.revenueByMonth.map((item) => {
-                  const maxRevenue = Math.max(...mockDashboardStats.revenueByMonth.map(r => r.revenue));
-                  const percentage = (item.revenue / maxRevenue) * 100;
-                  
-                  return (
-                    <div key={item.month} className="flex items-center gap-4">
-                      <span className="w-12 text-sm text-primary-500">{item.month}</span>
-                      <div className="flex-1 bg-primary-100 rounded-full h-8 overflow-hidden">
-                        <div 
-                          className="bg-primary-900 h-full rounded-full flex items-center justify-end px-3 transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        >
-                          {percentage > 30 && (
-                            <span className="text-xs font-medium text-white">{formatPrice(item.revenue)}</span>
-                          )}
+                {(stats?.revenue_by_month || []).length > 0 ? (
+                  (stats?.revenue_by_month || []).map((item) => {
+                    const maxRevenue = Math.max(...(stats?.revenue_by_month || []).map(r => r.revenue), 1);
+                    const percentage = (item.revenue / maxRevenue) * 100;
+                    
+                    return (
+                      <div key={item.month} className="flex items-center gap-4">
+                        <span className="w-12 text-sm text-primary-500">{item.month}</span>
+                        <div className="flex-1 bg-primary-100 rounded-full h-8 overflow-hidden">
+                          <div 
+                            className="bg-primary-900 h-full rounded-full flex items-center justify-end px-3 transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          >
+                            {percentage > 30 && (
+                              <span className="text-xs font-medium text-white">{formatPrice(item.revenue)}</span>
+                            )}
+                          </div>
                         </div>
+                        {percentage <= 30 && (
+                          <span className="w-24 text-sm font-medium text-right">{formatPrice(item.revenue)}</span>
+                        )}
                       </div>
-                      {percentage <= 30 && (
-                        <span className="w-24 text-sm font-medium text-right">{formatPrice(item.revenue)}</span>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <p className="text-center text-primary-500 py-4">No revenue data available</p>
+                )}
               </div>
 
               {/* Daily breakdown */}
@@ -231,29 +281,37 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary-100">
-                    {mockDashboardStats.topProducts.map((product, index) => (
-                      <tr key={product.name} className="hover:bg-primary-50">
-                        <td className="py-4 px-4">
-                          <span className={`w-6 h-6 inline-flex items-center justify-center rounded-full text-xs font-medium ${
-                            index < 3 ? 'bg-primary-900 text-white' : 'bg-primary-100 text-primary-700'
-                          }`}>
-                            {index + 1}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 font-medium text-primary-900">{product.name}</td>
-                        <td className="py-4 px-4 text-primary-600">Electronics</td>
-                        <td className="py-4 px-4 text-center text-primary-900">{product.rentals}</td>
-                        <td className="py-4 px-4 text-right font-medium text-primary-900">
-                          {formatPrice(product.rentals * 2500)}
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <span className="inline-flex items-center text-green-600 text-sm">
-                            <TrendingUp size={14} />
-                            <span className="ml-1">+{Math.floor(Math.random() * 20) + 5}%</span>
-                          </span>
+                    {(stats?.top_products || []).length > 0 ? (
+                      (stats?.top_products || []).map((product, index) => (
+                        <tr key={product.name} className="hover:bg-primary-50">
+                          <td className="py-4 px-4">
+                            <span className={`w-6 h-6 inline-flex items-center justify-center rounded-full text-xs font-medium ${
+                              index < 3 ? 'bg-primary-900 text-white' : 'bg-primary-100 text-primary-700'
+                            }`}>
+                              {index + 1}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 font-medium text-primary-900">{product.name}</td>
+                          <td className="py-4 px-4 text-primary-600">Electronics</td>
+                          <td className="py-4 px-4 text-center text-primary-900">{product.rentals}</td>
+                          <td className="py-4 px-4 text-right font-medium text-primary-900">
+                            {formatPrice(product.rentals * 2500)}
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <span className="inline-flex items-center text-green-600 text-sm">
+                              <TrendingUp size={14} />
+                              <span className="ml-1">+{Math.floor(Math.random() * 20) + 5}%</span>
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-primary-500">
+                          No product data available
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -283,7 +341,7 @@ export default function ReportsPage() {
               
               {/* Order Status Distribution */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {mockDashboardStats.ordersByStatus.map((item) => {
+                {(stats?.orders_by_status || []).map((item) => {
                   const colors: Record<string, string> = {
                     'Completed': 'bg-green-100 text-green-700',
                     'Active': 'bg-blue-100 text-blue-700',
@@ -315,27 +373,35 @@ export default function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-primary-100">
-                      {mockOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-primary-50">
-                          <td className="py-4 px-4 font-medium text-primary-900">{order.orderNumber}</td>
-                          <td className="py-4 px-4 text-primary-600">{order.customerName}</td>
-                          <td className="py-4 px-4 text-primary-600">
-                            {format(new Date(order.createdAt), 'MMM d, yyyy')}
-                          </td>
-                          <td className="py-4 px-4 text-right font-medium text-primary-900">
-                            {formatPrice(order.totalAmount)}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span className={`badge ${
-                              order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
-                              order.status === 'picked_up' || order.status === 'confirmed' ? 'badge-info' :
-                              order.status === 'pending' ? 'badge-warning' : 'badge-danger'
-                            } capitalize`}>
-                              {order.status.replace('_', ' ')}
-                            </span>
+                      {orders.length > 0 ? (
+                        orders.map((order) => (
+                          <tr key={order.id} className="hover:bg-primary-50">
+                            <td className="py-4 px-4 font-medium text-primary-900">{order.order_number}</td>
+                            <td className="py-4 px-4 text-primary-600">{order.customer_name || 'N/A'}</td>
+                            <td className="py-4 px-4 text-primary-600">
+                              {format(new Date(order.created_at), 'MMM d, yyyy')}
+                            </td>
+                            <td className="py-4 px-4 text-right font-medium text-primary-900">
+                              {formatPrice(order.total_amount)}
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className={`badge ${
+                                order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
+                                order.status === 'picked_up' || order.status === 'confirmed' ? 'badge-info' :
+                                order.status === 'pending' ? 'badge-warning' : 'badge-danger'
+                              } capitalize`}>
+                                {order.status.replace('_', ' ')}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-primary-500">
+                            No orders found
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>

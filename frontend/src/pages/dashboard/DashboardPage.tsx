@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   Package, 
@@ -9,15 +10,41 @@ import {
   BarChart3,
   Calendar,
   Users,
-  Building2
+  Building2,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockDashboardStats, mockOrders, mockProducts } from '../../data/mockData';
+import { dashboardApi, DashboardStats } from '../../api/dashboard';
+import { ordersApi, Order } from '../../api/orders';
 import { format } from 'date-fns';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, ordersData] = await Promise.all([
+          dashboardApi.getStats(),
+          ordersApi.getOrders({ limit: 5 })
+        ]);
+        setStats(statsData);
+        setRecentOrders(ordersData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -26,10 +53,26 @@ export default function DashboardPage() {
     }).format(price);
   };
 
-  const stats = [
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  const statCards = [
     {
       title: 'Total Revenue',
-      value: formatPrice(mockDashboardStats.totalRevenue),
+      value: formatPrice(stats?.total_revenue || 0),
       change: '+12.5%',
       changeType: 'positive',
       icon: <DollarSign size={24} />,
@@ -37,7 +80,7 @@ export default function DashboardPage() {
     },
     {
       title: user?.role === 'customer' ? 'My Orders' : 'Total Orders',
-      value: mockDashboardStats.totalOrders.toString(),
+      value: (stats?.total_orders || 0).toString(),
       change: '+8.2%',
       changeType: 'positive',
       icon: <ShoppingCart size={24} />,
@@ -45,7 +88,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Active Rentals',
-      value: mockDashboardStats.activeRentals.toString(),
+      value: (stats?.active_rentals || 0).toString(),
       change: '+3',
       changeType: 'positive',
       icon: <Package size={24} />,
@@ -53,7 +96,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Pending Returns',
-      value: mockDashboardStats.pendingReturns.toString(),
+      value: (stats?.pending_returns || 0).toString(),
       change: '-2',
       changeType: 'negative',
       icon: <Clock size={24} />,
@@ -61,7 +104,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Products',
-      value: mockProducts.length.toString(),
+      value: (stats?.total_products || 0).toString(),
       change: '+5',
       changeType: 'positive',
       icon: <Package size={24} />,
@@ -85,11 +128,9 @@ export default function DashboardPage() {
     },
   ];
 
-  const filteredStats = stats.filter(stat => 
+  const filteredStats = statCards.filter(stat => 
     user && stat.roles.includes(user.role)
   ).slice(0, 4);
-
-  const recentOrders = mockOrders.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -152,13 +193,13 @@ export default function DashboardPage() {
             
             {/* Simple Bar Chart */}
             <div className="space-y-4">
-              {mockDashboardStats.revenueByMonth.map((item) => (
+              {(stats?.revenue_by_month || []).map((item) => (
                 <div key={item.month} className="flex items-center gap-4">
                   <span className="w-10 text-sm text-primary-500">{item.month}</span>
                   <div className="flex-1 bg-primary-100 rounded-full h-4 overflow-hidden">
                     <div 
                       className="bg-primary-900 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${(item.revenue / 25000) * 100}%` }}
+                      style={{ width: `${(item.revenue / Math.max(...(stats?.revenue_by_month || []).map(m => m.revenue), 1)) * 100}%` }}
                     />
                   </div>
                   <span className="w-20 text-sm font-medium text-right">
@@ -178,7 +219,7 @@ export default function DashboardPage() {
           </div>
           
           <div className="space-y-4">
-            {mockDashboardStats.topProducts.map((product, index) => (
+            {(stats?.top_products || []).map((product, index) => (
               <div key={product.name} className="flex items-center gap-4">
                 <span className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">
                   {index + 1}
@@ -187,6 +228,9 @@ export default function DashboardPage() {
                 <span className="text-sm font-medium text-primary-900">{product.rentals} rentals</span>
               </div>
             ))}
+            {(stats?.top_products || []).length === 0 && (
+              <p className="text-sm text-primary-500 text-center py-4">No products yet</p>
+            )}
           </div>
         </div>
 
@@ -198,7 +242,7 @@ export default function DashboardPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              {mockDashboardStats.ordersByStatus.map((item) => (
+              {(stats?.orders_by_status || []).map((item) => (
                 <div key={item.status} className="bg-primary-50 rounded-xl p-4 text-center">
                   <p className="text-2xl font-bold text-primary-900">{item.count}</p>
                   <p className="text-sm text-primary-500">{item.status}</p>
@@ -213,9 +257,9 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-3">
-              {mockDashboardStats.ordersByStatus.map((item) => {
-                const total = mockDashboardStats.ordersByStatus.reduce((acc, i) => acc + i.count, 0);
-                const percentage = Math.round((item.count / total) * 100);
+              {(stats?.orders_by_status || []).map((item) => {
+                const total = (stats?.orders_by_status || []).reduce((acc, i) => acc + i.count, 0);
+                const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
                 const colors: Record<string, string> = {
                   'Completed': 'bg-green-500',
                   'Active': 'bg-blue-500',
@@ -266,32 +310,40 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-primary-100">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-primary-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <a href={`/orders/${order.id}`} className="text-sm font-medium text-primary-900 hover:text-primary-600">
-                      {order.orderNumber}
-                    </a>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-primary-600">{order.customerName}</td>
-                  <td className="px-6 py-4 text-sm text-primary-600">
-                    {format(new Date(order.rentalStartDate), 'MMM d')} - {format(new Date(order.rentalEndDate), 'MMM d, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-primary-900">
-                    {formatPrice(order.totalAmount)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`badge ${
-                      order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
-                      order.status === 'picked_up' ? 'badge-info' :
-                      order.status === 'confirmed' ? 'badge-info' :
-                      order.status === 'pending' ? 'badge-warning' : 'badge-danger'
-                    } capitalize`}>
-                      {order.status.replace('_', ' ')}
-                    </span>
+              {recentOrders.length > 0 ? (
+                recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-primary-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <a href={`/orders/${order.id}`} className="text-sm font-medium text-primary-900 hover:text-primary-600">
+                        {order.order_number}
+                      </a>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-primary-600">{order.customer_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-primary-600">
+                      {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-primary-900">
+                      {formatPrice(order.total_amount)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`badge ${
+                        order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
+                        order.status === 'picked_up' ? 'badge-info' :
+                        order.status === 'confirmed' ? 'badge-info' :
+                        order.status === 'pending' ? 'badge-warning' : 'badge-danger'
+                      } capitalize`}>
+                        {order.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-primary-500">
+                    No orders yet
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

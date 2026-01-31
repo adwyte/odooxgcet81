@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Receipt, 
@@ -13,9 +13,10 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
-import { mockInvoices } from '../../data/mockData';
+import { invoicesApi, Invoice } from '../../api/invoices';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { InvoiceStatus } from '../../types';
@@ -41,12 +42,32 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredInvoices = mockInvoices.filter(inv => {
-    const matchesSearch = inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true);
+        const data = await invoicesApi.getInvoices(
+          statusFilter !== 'all' ? { status: statusFilter } : {}
+        );
+        setInvoices(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load invoices');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInvoices();
+  }, [statusFilter]);
+
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (inv.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const formatPrice = (price: number) => {
@@ -58,11 +79,27 @@ export default function InvoicesPage() {
   };
 
   const totalStats = {
-    total: mockInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-    paid: mockInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.paidAmount, 0),
-    pending: mockInvoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled')
-      .reduce((sum, inv) => sum + (inv.totalAmount - inv.paidAmount), 0),
+    total: invoices.reduce((sum, inv) => sum + inv.total_amount, 0),
+    paid: invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.paid_amount || 0), 0),
+    pending: invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled')
+      .reduce((sum, inv) => sum + (inv.total_amount - (inv.paid_amount || 0)), 0),
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -180,11 +217,11 @@ export default function InvoicesPage() {
                       <Receipt size={20} className="text-primary-700" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-primary-900">{invoice.invoiceNumber}</h3>
-                      <p className="text-sm text-primary-500">{invoice.customerName}</p>
+                      <h3 className="font-semibold text-primary-900">{invoice.invoice_number}</h3>
+                      <p className="text-sm text-primary-500">{invoice.customer_name || 'N/A'}</p>
                     </div>
-                    <span className={`badge ${statusColors[invoice.status]} flex items-center gap-1 ml-2`}>
-                      {statusIcons[invoice.status]}
+                    <span className={`badge ${statusColors[invoice.status as InvoiceStatus] || 'badge-neutral'} flex items-center gap-1 ml-2`}>
+                      {statusIcons[invoice.status as InvoiceStatus]}
                       <span className="capitalize">{invoice.status}</span>
                     </span>
                   </div>
@@ -192,11 +229,11 @@ export default function InvoicesPage() {
                   <div className="flex flex-wrap gap-4 text-sm text-primary-500 mt-3">
                     <span className="flex items-center gap-1">
                       <Calendar size={14} />
-                      Due: {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
+                      Due: {invoice.due_date ? format(new Date(invoice.due_date), 'MMM d, yyyy') : 'N/A'}
                     </span>
                     <span className="flex items-center gap-1">
                       <DollarSign size={14} />
-                      Order: {invoice.orderId}
+                      Order: {invoice.order_id}
                     </span>
                   </div>
                 </div>
@@ -204,10 +241,10 @@ export default function InvoicesPage() {
                 {/* Amount & Payment Info */}
                 <div className="lg:text-right">
                   <p className="text-sm text-primary-500">Total Amount</p>
-                  <p className="text-xl font-bold text-primary-900">{formatPrice(invoice.totalAmount)}</p>
+                  <p className="text-xl font-bold text-primary-900">{formatPrice(invoice.total_amount)}</p>
                   {invoice.status === 'partial' && (
                     <p className="text-sm text-yellow-600 mt-1">
-                      Paid: {formatPrice(invoice.paidAmount)} | Due: {formatPrice(invoice.totalAmount - invoice.paidAmount)}
+                      Paid: {formatPrice(invoice.paid_amount || 0)} | Due: {formatPrice(invoice.total_amount - (invoice.paid_amount || 0))}
                     </p>
                   )}
                 </div>
@@ -235,9 +272,9 @@ export default function InvoicesPage() {
               {/* Invoice Lines Preview */}
               <div className="mt-4 pt-4 border-t border-primary-100">
                 <div className="text-sm text-primary-600">
-                  {invoice.lines.length} item{invoice.lines.length !== 1 ? 's' : ''}: {' '}
-                  {invoice.lines.map(line => line.description).join(', ').substring(0, 100)}
-                  {invoice.lines.map(line => line.description).join(', ').length > 100 && '...'}
+                  {(invoice.lines || []).length} item{(invoice.lines || []).length !== 1 ? 's' : ''}: {' '}
+                  {(invoice.lines || []).map(line => line.description).join(', ').substring(0, 100)}
+                  {(invoice.lines || []).map(line => line.description).join(', ').length > 100 && '...'}
                 </div>
               </div>
             </div>

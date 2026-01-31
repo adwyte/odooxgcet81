@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -6,14 +7,14 @@ import {
   Truck, 
   RotateCcw, 
   Receipt,
-  MapPin,
   Phone,
   Mail,
   CheckCircle,
-  Clock,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
-import { mockOrders, mockInvoices } from '../../data/mockData';
+import { ordersApi } from '../../api/orders';
+import { invoicesApi } from '../../api/invoices';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { OrderStatus } from '../../types';
@@ -34,15 +35,52 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const order = mockOrders.find(o => o.id === id);
-  const relatedInvoice = mockInvoices.find(inv => inv.orderId === id);
+  const [order, setOrder] = useState<any>(null);
+  const [relatedInvoice, setRelatedInvoice] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!order) {
+  useEffect(() => {
+    const fetchOrderData = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const orderData = await ordersApi.getOrder(id);
+        setOrder(orderData);
+        
+        // Try to find related invoice
+        try {
+          const invoice = await invoicesApi.getInvoiceByOrder(id);
+          if (invoice) {
+            setRelatedInvoice(invoice);
+          }
+        } catch {
+          // Invoice not found is ok
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load order');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
+
+  if (error || !order) {
     return (
       <div className="text-center py-12">
         <Package size={48} className="mx-auto text-primary-300 mb-4" />
         <h2 className="text-xl font-semibold text-primary-900 mb-2">Order not found</h2>
-        <p className="text-primary-500 mb-4">The order you're looking for doesn't exist.</p>
+        <p className="text-primary-500 mb-4">{error || "The order you're looking for doesn't exist."}</p>
         <Link to="/orders" className="btn btn-primary">
           Back to Orders
         </Link>
@@ -76,10 +114,10 @@ export default function OrderDetailPage() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-primary-900">{order.orderNumber}</h1>
+          <h1 className="text-2xl font-bold text-primary-900">{order.order_number}</h1>
           <p className="text-primary-500">Order Details</p>
         </div>
-        <span className={`badge ${statusColors[order.status]} capitalize`}>
+        <span className={`badge ${statusColors[order.status as OrderStatus]} capitalize`}>
           {order.status.replace('_', ' ')}
         </span>
       </div>
@@ -138,26 +176,26 @@ export default function OrderDetailPage() {
               <div className="bg-primary-50 rounded-xl p-4">
                 <p className="text-sm text-primary-500">Start Date</p>
                 <p className="text-lg font-semibold text-primary-900">
-                  {format(new Date(order.rentalStartDate), 'EEEE, MMM d, yyyy')}
+                  {format(new Date(order.rental_start_date), 'EEEE, MMM d, yyyy')}
                 </p>
               </div>
               <div className="bg-primary-50 rounded-xl p-4">
                 <p className="text-sm text-primary-500">End Date</p>
                 <p className="text-lg font-semibold text-primary-900">
-                  {format(new Date(order.rentalEndDate), 'EEEE, MMM d, yyyy')}
+                  {format(new Date(order.rental_end_date), 'EEEE, MMM d, yyyy')}
                 </p>
               </div>
             </div>
-            {order.pickupDate && (
+            {order.pickup_date && (
               <div className="mt-4 flex items-center gap-2 text-sm text-green-600">
                 <Truck size={16} />
-                Picked up on {format(new Date(order.pickupDate), 'MMM d, yyyy')}
+                Picked up on {format(new Date(order.pickup_date), 'MMM d, yyyy')}
               </div>
             )}
-            {order.returnDate && (
+            {order.return_date && (
               <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
                 <RotateCcw size={16} />
-                Returned on {format(new Date(order.returnDate), 'MMM d, yyyy')}
+                Returned on {format(new Date(order.return_date), 'MMM d, yyyy')}
               </div>
             )}
           </div>
@@ -169,20 +207,20 @@ export default function OrderDetailPage() {
               Order Items
             </h3>
             <div className="space-y-4">
-              {order.lines.map((line) => (
+              {(order.lines || []).map((line: any) => (
                 <div key={line.id} className="flex items-center gap-4 p-4 bg-primary-50 rounded-xl">
                   <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
                     <Package size={24} className="text-primary-400" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-primary-900">{line.productName}</h4>
+                    <h4 className="font-medium text-primary-900">{line.product_name}</h4>
                     <p className="text-sm text-primary-500">
-                      {line.rentalPeriod.type}ly rental • Qty: {line.quantity}
+                      {line.rental_period_type || 'daily'} rental • Qty: {line.quantity}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-primary-900">{formatPrice(line.totalPrice)}</p>
-                    <p className="text-sm text-primary-500">{formatPrice(line.unitPrice)}/{line.rentalPeriod.type}</p>
+                    <p className="font-semibold text-primary-900">{formatPrice(line.total_price)}</p>
+                    <p className="text-sm text-primary-500">{formatPrice(line.unit_price)}/{line.rental_period_type || 'day'}</p>
                   </div>
                 </div>
               ))}
@@ -198,12 +236,12 @@ export default function OrderDetailPage() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
                   <span className="text-lg font-bold text-primary-700">
-                    {user?.role === 'customer' ? order.vendorName[0] : order.customerName[0]}
+                    {user?.role === 'customer' ? (order.vendor_name || 'V')[0] : (order.customer_name || 'C')[0]}
                   </span>
                 </div>
                 <div>
                   <p className="font-medium text-primary-900">
-                    {user?.role === 'customer' ? order.vendorName : order.customerName}
+                    {user?.role === 'customer' ? order.vendor_name : order.customer_name}
                   </p>
                   <p className="text-sm text-primary-500">
                     {user?.role === 'customer' ? 'Vendor' : 'Customer'}
@@ -232,36 +270,36 @@ export default function OrderDetailPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-primary-600">Subtotal</span>
-                <span className="text-primary-900">{formatPrice(order.subtotal)}</span>
+                <span className="text-primary-900">{formatPrice(order.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-primary-600">Tax (18% GST)</span>
-                <span className="text-primary-900">{formatPrice(order.taxAmount)}</span>
+                <span className="text-primary-900">{formatPrice(order.tax_amount || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-primary-600">Security Deposit</span>
-                <span className="text-primary-900">{formatPrice(order.securityDeposit)}</span>
+                <span className="text-primary-900">{formatPrice(order.security_deposit || 0)}</span>
               </div>
-              {order.lateReturnFee && (
+              {order.late_return_fee && (
                 <div className="flex justify-between text-red-600">
                   <span>Late Return Fee</span>
-                  <span>{formatPrice(order.lateReturnFee)}</span>
+                  <span>{formatPrice(order.late_return_fee)}</span>
                 </div>
               )}
               <div className="border-t border-primary-200 pt-3 mt-3">
                 <div className="flex justify-between font-semibold">
                   <span className="text-primary-900">Total</span>
-                  <span className="text-primary-900">{formatPrice(order.totalAmount)}</span>
+                  <span className="text-primary-900">{formatPrice(order.total_amount || 0)}</span>
                 </div>
               </div>
               <div className="flex justify-between text-green-600">
                 <span>Paid</span>
-                <span>{formatPrice(order.paidAmount)}</span>
+                <span>{formatPrice(order.paid_amount || 0)}</span>
               </div>
-              {order.paidAmount < order.totalAmount && (
+              {(order.paid_amount || 0) < (order.total_amount || 0) && (
                 <div className="flex justify-between font-medium text-yellow-600">
                   <span>Balance Due</span>
-                  <span>{formatPrice(order.totalAmount - order.paidAmount)}</span>
+                  <span>{formatPrice((order.total_amount || 0) - (order.paid_amount || 0))}</span>
                 </div>
               )}
             </div>
@@ -277,7 +315,7 @@ export default function OrderDetailPage() {
                   View Invoice
                 </Link>
               )}
-              {user?.role === 'customer' && order.paidAmount < order.totalAmount && (
+              {user?.role === 'customer' && (order.paid_amount || 0) < (order.total_amount || 0) && (
                 <button className="btn btn-primary w-full">
                   Pay Balance
                 </button>
@@ -313,24 +351,24 @@ export default function OrderDetailPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-primary-500">Order Number</span>
-                <span className="text-primary-900 font-medium">{order.orderNumber}</span>
+                <span className="text-primary-900 font-medium">{order.order_number}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-primary-500">Quotation</span>
                 <Link to={`/quotations`} className="text-primary-600 hover:text-primary-900">
-                  {order.quotationId}
+                  {order.quotation_id || 'N/A'}
                 </Link>
               </div>
               <div className="flex justify-between">
                 <span className="text-primary-500">Created</span>
                 <span className="text-primary-900">
-                  {format(new Date(order.createdAt), 'MMM d, yyyy')}
+                  {format(new Date(order.created_at), 'MMM d, yyyy')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-primary-500">Last Updated</span>
                 <span className="text-primary-900">
-                  {format(new Date(order.updatedAt), 'MMM d, yyyy')}
+                  {format(new Date(order.updated_at), 'MMM d, yyyy')}
                 </span>
               </div>
             </div>

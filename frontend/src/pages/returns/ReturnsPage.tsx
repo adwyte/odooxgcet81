@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   RotateCcw, 
@@ -11,9 +11,9 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  XCircle
+  Loader2
 } from 'lucide-react';
-import { mockOrders } from '../../data/mockData';
+import { ordersApi, Order } from '../../api/orders';
 import { useAuth } from '../../context/AuthContext';
 import { format, differenceInDays, isPast } from 'date-fns';
 
@@ -26,7 +26,7 @@ interface ReturnItem {
   productName: string;
   quantity: number;
   customerName: string;
-  scheduledReturnDate: string;
+  scheduledReturnDate?: string;
   actualReturnDate?: string;
   status: ReturnStatus;
   lateReturnFee?: number;
@@ -46,27 +46,34 @@ const statusIcons: Record<ReturnStatus, React.ReactNode> = {
   overdue: <AlertTriangle size={14} />,
 };
 
-// Generate mock returns from orders
-const generateMockReturns = (): ReturnItem[] => {
+// Generate returns from orders
+const generateReturnsFromOrders = (orders: Order[]): ReturnItem[] => {
   const returns: ReturnItem[] = [];
   
-  mockOrders.forEach(order => {
+  orders.forEach(order => {
     if (order.status === 'picked_up' || order.status === 'returned' || order.status === 'completed') {
-      order.lines.forEach(line => {
-        const isOverdue = isPast(new Date(order.rentalEndDate)) && order.status === 'picked_up';
+      (order.lines || []).forEach(line => {
+        const isOverdue = order.rental_end_date && isPast(new Date(order.rental_end_date)) && order.status === 'picked_up';
         const isCompleted = order.status === 'returned' || order.status === 'completed';
+        
+        let status: ReturnStatus = 'pending';
+        if (isCompleted) {
+          status = 'completed';
+        } else if (isOverdue) {
+          status = 'overdue';
+        }
         
         returns.push({
           id: `ret-${order.id}-${line.id}`,
           orderId: order.id,
-          orderNumber: order.orderNumber,
-          productName: line.productName,
+          orderNumber: order.order_number,
+          productName: line.product_name,
           quantity: line.quantity,
-          customerName: order.customerName,
-          scheduledReturnDate: order.rentalEndDate,
-          actualReturnDate: order.returnDate,
-          status: isCompleted ? 'completed' : isOverdue ? 'overdue' : 'pending',
-          lateReturnFee: order.lateReturnFee,
+          customerName: order.customer_name || 'N/A',
+          scheduledReturnDate: order.rental_end_date,
+          actualReturnDate: order.return_date,
+          status,
+          lateReturnFee: order.late_return_fee,
         });
       });
     }
@@ -75,15 +82,34 @@ const generateMockReturns = (): ReturnItem[] => {
   return returns;
 };
 
-const mockReturns = generateMockReturns();
-
 export default function ReturnsPage() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReturnStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredReturns = mockReturns.filter(ret => {
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const data = await ordersApi.getOrders();
+        setOrders(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load returns');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrders();
+  }, []);
+
+  const returns = generateReturnsFromOrders(orders);
+
+  const filteredReturns = returns.filter(ret => {
     const matchesSearch = ret.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ret.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ret.customerName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -92,11 +118,27 @@ export default function ReturnsPage() {
   });
 
   const stats = {
-    pending: mockReturns.filter(r => r.status === 'pending').length,
-    overdue: mockReturns.filter(r => r.status === 'overdue').length,
-    completed: mockReturns.filter(r => r.status === 'completed').length,
-    total: mockReturns.length,
+    pending: returns.filter(r => r.status === 'pending').length,
+    overdue: returns.filter(r => r.status === 'overdue').length,
+    completed: returns.filter(r => r.status === 'completed').length,
+    total: returns.length,
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -216,7 +258,9 @@ export default function ReturnsPage() {
           </div>
         ) : (
           filteredReturns.map((returnItem) => {
-            const daysUntilReturn = differenceInDays(new Date(returnItem.scheduledReturnDate), new Date());
+            const daysUntilReturn = returnItem.scheduledReturnDate 
+              ? differenceInDays(new Date(returnItem.scheduledReturnDate), new Date())
+              : 0;
             const isOverdue = returnItem.status === 'overdue';
             const daysOverdue = isOverdue ? Math.abs(daysUntilReturn) : 0;
             
@@ -248,7 +292,7 @@ export default function ReturnsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
-                        Return by: {format(new Date(returnItem.scheduledReturnDate), 'MMM d, yyyy')}
+                        Return by: {returnItem.scheduledReturnDate ? format(new Date(returnItem.scheduledReturnDate), 'MMM d, yyyy') : 'N/A'}
                       </span>
                       {user?.role !== 'customer' && (
                         <span>Customer: {returnItem.customerName}</span>

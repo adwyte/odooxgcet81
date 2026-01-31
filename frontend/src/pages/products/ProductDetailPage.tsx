@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Clock, 
@@ -11,32 +11,58 @@ import {
   Check,
   AlertCircle,
   Building2,
-  Package
+  Package,
+  Loader2
 } from 'lucide-react';
-import { mockProducts } from '../../data/mockData';
+import { productsApi, Product } from '../../api/products';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { RentalPeriod, RentalPeriodSelection } from '../../types';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { addItem } = useCart();
   
-  const product = mockProducts.find(p => p.id === id);
-  
-  const [selectedVariant, setSelectedVariant] = useState(product?.variants[0] || null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [rentalType, setRentalType] = useState<RentalPeriod>('day');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showAddedMessage, setShowAddedMessage] = useState(false);
 
-  if (!product) {
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const data = await productsApi.getProduct(id);
+        setProduct(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load product');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-primary-900">Product not found</h2>
+        <h2 className="text-xl font-semibold text-primary-900">{error || 'Product not found'}</h2>
         <Link to="/products" className="btn btn-secondary mt-4">
           <ArrowLeft size={18} />
           Back to Products
@@ -44,6 +70,16 @@ export default function ProductDetailPage() {
       </div>
     );
   }
+
+  // Normalize pricing from API format
+  const rentalPricing = product.rental_pricing || { hourly: 0, daily: 0, weekly: 0 };
+  const availableQuantity = product.available_quantity || 0;
+  const reservedQuantity = product.reserved_quantity || 0;
+  const images = product.images && product.images.length > 0 ? product.images : ['/placeholder.jpg'];
+  const category = product.category || 'Uncategorized';
+  const vendorName = product.vendor_name || 'Unknown Vendor';
+  const attributes = product.attributes || [];
+  const variants: any[] = [];
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -67,18 +103,18 @@ export default function ProductDetailPage() {
     
     switch (rentalType) {
       case 'hour':
-        basePrice = (product.rentalPricing.hourly || 0) * diffHours;
+        basePrice = (rentalPricing.hourly || 0) * diffHours;
         break;
       case 'day':
-        basePrice = (product.rentalPricing.daily || 0) * diffDays;
+        basePrice = (rentalPricing.daily || 0) * diffDays;
         break;
       case 'week':
-        basePrice = (product.rentalPricing.weekly || 0) * diffWeeks;
+        basePrice = (rentalPricing.weekly || 0) * diffWeeks;
         break;
     }
     
     if (selectedVariant) {
-      basePrice += selectedVariant.priceModifier * (rentalType === 'day' ? diffDays : rentalType === 'week' ? diffWeeks : diffHours);
+      basePrice += (selectedVariant.priceModifier || 0) * (rentalType === 'day' ? diffDays : rentalType === 'week' ? diffWeeks : diffHours);
     }
     
     return basePrice * quantity;
@@ -94,13 +130,21 @@ export default function ProductDetailPage() {
       quantity,
     };
     
-    addItem(product, selectedVariant || undefined, rentalPeriod);
+    // Convert product to cart-compatible format
+    const cartProduct = {
+      ...product,
+      rentalPricing,
+      availableQuantity,
+      images,
+    };
+    
+    addItem(cartProduct as any, selectedVariant || undefined, rentalPeriod);
     setShowAddedMessage(true);
     setTimeout(() => setShowAddedMessage(false), 3000);
   };
 
   const isDateValid = startDate && endDate && new Date(endDate) > new Date(startDate);
-  const maxQuantity = Math.min(product.availableQuantity, 10);
+  const maxQuantity = Math.min(availableQuantity, 10);
 
   return (
     <div className="space-y-6">
@@ -115,16 +159,16 @@ export default function ProductDetailPage() {
         <div className="space-y-4">
           <div className="aspect-square bg-primary-100 rounded-2xl overflow-hidden">
             <img
-              src={product.images[0]}
+              src={images[0]}
               alt={product.name}
               className="w-full h-full object-cover"
             />
           </div>
           
           {/* Thumbnails */}
-          {product.images.length > 1 && (
+          {images.length > 1 && (
             <div className="flex gap-2">
-              {product.images.map((img, idx) => (
+              {images.map((img, idx) => (
                 <button
                   key={idx}
                   className="w-20 h-20 rounded-lg overflow-hidden border-2 border-primary-200 hover:border-primary-900"
@@ -141,8 +185,8 @@ export default function ProductDetailPage() {
           {/* Header */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="badge badge-neutral">{product.category}</span>
-              {product.availableQuantity > 0 ? (
+              <span className="badge badge-neutral">{category}</span>
+              {availableQuantity > 0 ? (
                 <span className="badge badge-success">Available</span>
               ) : (
                 <span className="badge badge-danger">Out of Stock</span>
@@ -159,15 +203,15 @@ export default function ProductDetailPage() {
             </div>
             <div>
               <p className="text-sm text-primary-500">Provided by</p>
-              <p className="font-medium text-primary-900">{product.vendorName}</p>
+              <p className="font-medium text-primary-900">{vendorName}</p>
             </div>
           </div>
 
           {/* Attributes */}
-          {product.attributes.length > 0 && (
+          {attributes.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {product.attributes.map(attr => (
-                <span key={attr.id} className="px-3 py-1 bg-primary-100 rounded-full text-sm">
+              {attributes.map((attr: any, idx: number) => (
+                <span key={attr.id || idx} className="px-3 py-1 bg-primary-100 rounded-full text-sm">
                   <span className="text-primary-500">{attr.name}:</span>{' '}
                   <span className="text-primary-900 font-medium">{attr.value}</span>
                 </span>
@@ -179,7 +223,7 @@ export default function ProductDetailPage() {
           <div className="card p-4 space-y-4">
             <h3 className="font-semibold text-primary-900">Rental Pricing</h3>
             <div className="grid grid-cols-3 gap-3">
-              {product.rentalPricing.hourly && (
+              {rentalPricing.hourly && (
                 <button
                   onClick={() => setRentalType('hour')}
                   className={`p-3 rounded-lg border-2 transition-colors ${
@@ -190,10 +234,10 @@ export default function ProductDetailPage() {
                 >
                   <Clock size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Hourly</p>
-                  <p className="font-bold text-primary-900">{formatPrice(product.rentalPricing.hourly)}</p>
+                  <p className="font-bold text-primary-900">{formatPrice(rentalPricing.hourly)}</p>
                 </button>
               )}
-              {product.rentalPricing.daily && (
+              {rentalPricing.daily && (
                 <button
                   onClick={() => setRentalType('day')}
                   className={`p-3 rounded-lg border-2 transition-colors ${
@@ -204,10 +248,10 @@ export default function ProductDetailPage() {
                 >
                   <Calendar size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Daily</p>
-                  <p className="font-bold text-primary-900">{formatPrice(product.rentalPricing.daily)}</p>
+                  <p className="font-bold text-primary-900">{formatPrice(rentalPricing.daily)}</p>
                 </button>
               )}
-              {product.rentalPricing.weekly && (
+              {rentalPricing.weekly && (
                 <button
                   onClick={() => setRentalType('week')}
                   className={`p-3 rounded-lg border-2 transition-colors ${
@@ -218,18 +262,18 @@ export default function ProductDetailPage() {
                 >
                   <CalendarDays size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Weekly</p>
-                  <p className="font-bold text-primary-900">{formatPrice(product.rentalPricing.weekly)}</p>
+                  <p className="font-bold text-primary-900">{formatPrice(rentalPricing.weekly)}</p>
                 </button>
               )}
             </div>
           </div>
 
           {/* Variants */}
-          {product.variants.length > 0 && (
+          {variants.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-semibold text-primary-900">Options</h3>
               <div className="flex flex-wrap gap-2">
-                {product.variants.map(variant => (
+                {variants.map((variant: any) => (
                   <button
                     key={variant.id}
                     onClick={() => setSelectedVariant(variant)}
@@ -299,7 +343,7 @@ export default function ProductDetailPage() {
                     </button>
                   </div>
                   <span className="text-sm text-primary-500">
-                    {product.availableQuantity} available
+                    {availableQuantity} available
                   </span>
                 </div>
               </div>
@@ -318,7 +362,7 @@ export default function ProductDetailPage() {
               {/* Add to Cart */}
               <button
                 onClick={handleAddToCart}
-                disabled={!isDateValid || product.availableQuantity === 0}
+                disabled={!isDateValid || availableQuantity === 0}
                 className="btn btn-primary w-full"
               >
                 <ShoppingCart size={18} />
@@ -347,10 +391,10 @@ export default function ProductDetailPage() {
             <Package size={20} className="text-primary-700" />
             <div>
               <p className="text-sm font-medium text-primary-900">
-                {product.availableQuantity} units available
+                {availableQuantity} units available
               </p>
               <p className="text-xs text-primary-500">
-                {product.reservedQuantity} currently reserved
+                {reservedQuantity} currently reserved
               </p>
             </div>
           </div>

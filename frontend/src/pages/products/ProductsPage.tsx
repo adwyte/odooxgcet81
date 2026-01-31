@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Grid, List, Plus, ChevronDown, Clock, Calendar, CalendarDays } from 'lucide-react';
-import { mockProducts, productCategories } from '../../data/mockData';
+import { Search, Filter, Grid, List, Plus, ChevronDown, Clock, Calendar, CalendarDays, Loader2 } from 'lucide-react';
+import { productsApi, Product, Category } from '../../api/products';
 import { useAuth } from '../../context/AuthContext';
 
 type ViewMode = 'grid' | 'list';
@@ -12,12 +12,38 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredProducts = mockProducts.filter(product => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [productsData, categoriesData] = await Promise.all([
+          productsApi.getProducts(),
+          productsApi.getCategories()
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load products');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  const productCategories = ['All', ...categories.map(c => c.name)];
+
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesPublished = user?.role === 'customer' ? product.isPublished : true;
+    const matchesPublished = user?.role === 'customer' ? product.is_published : true;
     return matchesSearch && matchesCategory && matchesPublished;
   });
 
@@ -29,18 +55,35 @@ export default function ProductsPage() {
     }).format(price);
   };
 
-  const getPriceDisplay = (product: typeof mockProducts[0]) => {
-    if (product.rentalPricing.hourly) {
-      return { price: formatPrice(product.rentalPricing.hourly), unit: '/hour' };
+  const getPriceDisplay = (product: Product) => {
+    const pricing = product.rental_pricing;
+    if (pricing?.hourly) {
+      return { price: formatPrice(pricing.hourly), unit: '/hour' };
     }
-    if (product.rentalPricing.daily) {
-      return { price: formatPrice(product.rentalPricing.daily), unit: '/day' };
+    if (pricing?.daily) {
+      return { price: formatPrice(pricing.daily), unit: '/day' };
     }
-    if (product.rentalPricing.weekly) {
-      return { price: formatPrice(product.rentalPricing.weekly), unit: '/week' };
+    if (pricing?.weekly) {
+      return { price: formatPrice(pricing.weekly), unit: '/week' };
     }
     return { price: '-', unit: '' };
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -125,7 +168,7 @@ export default function ProductsPage() {
 
       {/* Results count */}
       <p className="text-sm text-primary-500">
-        Showing {filteredProducts.length} of {mockProducts.length} products
+        Showing {filteredProducts.length} of {products.length} products
       </p>
 
       {/* Products Grid/List */}
@@ -142,7 +185,7 @@ export default function ProductsPage() {
                 {/* Image */}
                 <div className="aspect-[4/3] bg-primary-100 overflow-hidden">
                   <img
-                    src={product.images[0]}
+                    src={(product.images && product.images[0]) || '/placeholder.jpg'}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -151,8 +194,8 @@ export default function ProductsPage() {
                 {/* Content */}
                 <div className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="badge badge-neutral text-xs">{product.category}</span>
-                    {product.availableQuantity > 0 ? (
+                    <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
+                    {product.available_quantity > 0 ? (
                       <span className="badge badge-success text-xs">Available</span>
                     ) : (
                       <span className="badge badge-danger text-xs">Out of Stock</span>
@@ -165,22 +208,22 @@ export default function ProductsPage() {
                   {/* Pricing */}
                   <div className="pt-2 border-t border-primary-100">
                     <div className="flex items-center gap-3">
-                      {product.rentalPricing.hourly && (
+                      {product.rental_pricing?.hourly && (
                         <div className="flex items-center gap-1 text-xs text-primary-500">
                           <Clock size={14} />
-                          {formatPrice(product.rentalPricing.hourly)}
+                          {formatPrice(product.rental_pricing.hourly)}
                         </div>
                       )}
-                      {product.rentalPricing.daily && (
+                      {product.rental_pricing?.daily && (
                         <div className="flex items-center gap-1 text-xs text-primary-500">
                           <Calendar size={14} />
-                          {formatPrice(product.rentalPricing.daily)}
+                          {formatPrice(product.rental_pricing.daily)}
                         </div>
                       )}
-                      {product.rentalPricing.weekly && (
+                      {product.rental_pricing?.weekly && (
                         <div className="flex items-center gap-1 text-xs text-primary-500">
                           <CalendarDays size={14} />
-                          {formatPrice(product.rentalPricing.weekly)}
+                          {formatPrice(product.rental_pricing.weekly)}
                         </div>
                       )}
                     </div>
@@ -192,7 +235,7 @@ export default function ProductsPage() {
                       <span className="text-sm font-normal text-primary-500">{priceInfo.unit}</span>
                     </span>
                     <span className="text-xs text-primary-500">
-                      {product.availableQuantity} available
+                      {product.available_quantity} available
                     </span>
                   </div>
                 </div>
@@ -213,7 +256,7 @@ export default function ProductsPage() {
                 {/* Image */}
                 <div className="w-32 h-24 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
                   <img
-                    src={product.images[0]}
+                    src={(product.images && product.images[0]) || '/placeholder.jpg'}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
@@ -224,8 +267,8 @@ export default function ProductsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="badge badge-neutral text-xs">{product.category}</span>
-                        {product.availableQuantity > 0 ? (
+                        <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
+                        {product.available_quantity > 0 ? (
                           <span className="badge badge-success text-xs">Available</span>
                         ) : (
                           <span className="badge badge-danger text-xs">Out of Stock</span>
@@ -238,28 +281,28 @@ export default function ProductsPage() {
                     <div className="text-right flex-shrink-0">
                       <span className="text-lg font-bold text-primary-900">{priceInfo.price}</span>
                       <span className="text-sm text-primary-500">{priceInfo.unit}</span>
-                      <p className="text-xs text-primary-500 mt-1">{product.availableQuantity} available</p>
+                      <p className="text-xs text-primary-500 mt-1">{product.available_quantity} available</p>
                     </div>
                   </div>
                   
                   {/* Pricing Options */}
                   <div className="flex items-center gap-4 mt-3">
-                    {product.rentalPricing.hourly && (
+                    {product.rental_pricing?.hourly && (
                       <div className="flex items-center gap-1 text-sm text-primary-600">
                         <Clock size={14} />
-                        {formatPrice(product.rentalPricing.hourly)}/hr
+                        {formatPrice(product.rental_pricing.hourly)}/hr
                       </div>
                     )}
-                    {product.rentalPricing.daily && (
+                    {product.rental_pricing?.daily && (
                       <div className="flex items-center gap-1 text-sm text-primary-600">
                         <Calendar size={14} />
-                        {formatPrice(product.rentalPricing.daily)}/day
+                        {formatPrice(product.rental_pricing.daily)}/day
                       </div>
                     )}
-                    {product.rentalPricing.weekly && (
+                    {product.rental_pricing?.weekly && (
                       <div className="flex items-center gap-1 text-sm text-primary-600">
                         <CalendarDays size={14} />
-                        {formatPrice(product.rentalPricing.weekly)}/week
+                        {formatPrice(product.rental_pricing.weekly)}/week
                       </div>
                     )}
                   </div>

@@ -12,32 +12,21 @@ import {
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { ordersApi } from '../../api/orders';
 import { format } from 'date-fns';
 import { Address, PaymentMethod } from '../../types';
 
-// Mock addresses
-const mockAddresses: Address[] = [
-  {
-    id: '1',
-    label: 'Office',
-    street: '123 Business Park',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    postalCode: '560001',
-    country: 'India',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    label: 'Warehouse',
-    street: '456 Industrial Area',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    postalCode: '560058',
-    country: 'India',
-    isDefault: false,
-  },
-];
+// Default empty address form
+const emptyAddress: Address = {
+  id: 'new',
+  label: '',
+  street: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: 'India',
+  isDefault: true,
+};
 
 type CheckoutStep = 'address' | 'payment' | 'review';
 
@@ -48,9 +37,10 @@ export default function CheckoutPage() {
   const { subtotal, tax, total } = getTotal();
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('address');
-  const [selectedAddress, setSelectedAddress] = useState<string>(mockAddresses[0].id);
+  const [deliveryAddress, setDeliveryAddress] = useState<Address>(emptyAddress);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [securityDeposit] = useState(Math.round(subtotal * 0.1)); // 10% security deposit
 
   const formatPrice = (price: number) => {
@@ -73,10 +63,41 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    clearCart();
-    navigate('/orders', { state: { orderPlaced: true } });
+    setError(null);
+    
+    try {
+      // Get vendor_id from product (may be vendor_id or vendorId depending on source)
+      const product = items[0]?.product as any;
+      const vendorId = product?.vendor_id || product?.vendorId || '';
+      
+      // Create order via API
+      await ordersApi.createOrder({
+        vendor_id: vendorId,
+        notes: `Delivery: ${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.state} ${deliveryAddress.postalCode}. Payment: ${paymentMethod}`,
+        lines: items.map(item => {
+          const prod = item.product as any;
+          return {
+            product_id: prod.id,
+            quantity: item.rentalPeriod.quantity,
+            rental_period: {
+              type: item.rentalPeriod.type,
+              start_date: item.rentalPeriod.startDate,
+              end_date: item.rentalPeriod.endDate,
+              quantity: item.rentalPeriod.quantity,
+            },
+            unit_price: item.unitPrice,
+            total_price: item.totalPrice,
+          };
+        }),
+      });
+      
+      clearCart();
+      navigate('/orders', { state: { orderPlaced: true } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to place order');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -159,47 +180,99 @@ export default function CheckoutPage() {
             <div className="card p-6 space-y-4">
               <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
                 <MapPin size={20} />
-                Select Delivery Address
+                Delivery Address
               </h2>
               
-              <div className="space-y-3">
-                {mockAddresses.map((address) => (
-                  <button
-                    key={address.id}
-                    onClick={() => setSelectedAddress(address.id)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                      selectedAddress === address.id
-                        ? 'border-primary-900 bg-primary-50'
-                        : 'border-primary-200 hover:border-primary-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="badge badge-neutral mb-2">{address.label}</span>
-                        <p className="font-medium text-primary-900">{address.street}</p>
-                        <p className="text-sm text-primary-600">
-                          {address.city}, {address.state} {address.postalCode}
-                        </p>
-                        <p className="text-sm text-primary-500">{address.country}</p>
-                      </div>
-                      {selectedAddress === address.id && (
-                        <div className="w-6 h-6 bg-primary-900 rounded-full flex items-center justify-center">
-                          <Check size={14} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Address Label
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryAddress.label}
+                    onChange={(e) => setDeliveryAddress({...deliveryAddress, label: e.target.value})}
+                    className="input"
+                    placeholder="e.g., Office, Home, Warehouse"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-primary-700 mb-1">
+                    Street Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={deliveryAddress.street}
+                    onChange={(e) => setDeliveryAddress({...deliveryAddress, street: e.target.value})}
+                    className="input"
+                    placeholder="Enter street address"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary-700 mb-1">
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddress.city}
+                      onChange={(e) => setDeliveryAddress({...deliveryAddress, city: e.target.value})}
+                      className="input"
+                      placeholder="Enter city"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary-700 mb-1">
+                      State *
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddress.state}
+                      onChange={(e) => setDeliveryAddress({...deliveryAddress, state: e.target.value})}
+                      className="input"
+                      placeholder="Enter state"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary-700 mb-1">
+                      Postal Code *
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddress.postalCode}
+                      onChange={(e) => setDeliveryAddress({...deliveryAddress, postalCode: e.target.value})}
+                      className="input"
+                      placeholder="Enter postal code"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary-700 mb-1">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddress.country}
+                      onChange={(e) => setDeliveryAddress({...deliveryAddress, country: e.target.value})}
+                      className="input"
+                      placeholder="Enter country"
+                    />
+                  </div>
+                </div>
               </div>
-
-              <button className="btn btn-secondary w-full">
-                <Plus size={18} />
-                Add New Address
-              </button>
 
               <button
                 onClick={() => setCurrentStep('payment')}
-                className="btn btn-primary w-full"
+                disabled={!deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.postalCode}
+                className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Payment
               </button>
@@ -332,16 +405,16 @@ export default function CheckoutPage() {
               {/* Delivery Address */}
               <div className="card p-6">
                 <h2 className="text-lg font-semibold text-primary-900 mb-4">Delivery Address</h2>
-                {(() => {
-                  const address = mockAddresses.find(a => a.id === selectedAddress);
-                  return address && (
-                    <div>
-                      <span className="badge badge-neutral mb-2">{address.label}</span>
-                      <p className="text-primary-900">{address.street}</p>
-                      <p className="text-primary-600">{address.city}, {address.state} {address.postalCode}</p>
-                    </div>
-                  );
-                })()}
+                <div>
+                  {deliveryAddress.label && (
+                    <span className="badge badge-neutral mb-2">{deliveryAddress.label}</span>
+                  )}
+                  <p className="text-primary-900">{deliveryAddress.street}</p>
+                  <p className="text-primary-600">
+                    {deliveryAddress.city}, {deliveryAddress.state} {deliveryAddress.postalCode}
+                  </p>
+                  <p className="text-primary-500">{deliveryAddress.country}</p>
+                </div>
               </div>
 
               {/* Payment Method */}
@@ -367,14 +440,20 @@ export default function CheckoutPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-primary-600">Company</span>
-                    <span className="text-primary-900">{user?.companyName}</span>
+                    <span className="text-primary-900">{user?.companyName || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-primary-600">GSTIN</span>
-                    <span className="text-primary-900">{user?.gstin}</span>
+                    <span className="text-primary-900">{user?.gstin || 'N/A'}</span>
                   </div>
                 </div>
               </div>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                  {error}
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button

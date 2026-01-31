@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -8,9 +9,10 @@ import {
   Building2,
   Receipt,
   CreditCard,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
-import { mockInvoices } from '../../data/mockData';
+import { invoicesApi } from '../../api/invoices';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { InvoiceStatus } from '../../types';
@@ -28,14 +30,41 @@ export default function InvoiceDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const invoice = mockInvoices.find(inv => inv.id === id);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!invoice) {
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const data = await invoicesApi.getInvoice(id);
+        setInvoice(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load invoice');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
+
+  if (error || !invoice) {
     return (
       <div className="text-center py-12">
         <Receipt size={48} className="mx-auto text-primary-300 mb-4" />
         <h2 className="text-xl font-semibold text-primary-900 mb-2">Invoice not found</h2>
-        <p className="text-primary-500 mb-4">The invoice you're looking for doesn't exist.</p>
+        <p className="text-primary-500 mb-4">{error || "The invoice you're looking for doesn't exist."}</p>
         <Link to="/invoices" className="btn btn-primary">
           Back to Invoices
         </Link>
@@ -67,10 +96,10 @@ export default function InvoiceDetailPage() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-primary-900">{invoice.invoiceNumber}</h1>
+          <h1 className="text-2xl font-bold text-primary-900">{invoice.invoice_number}</h1>
           <p className="text-primary-500">Invoice Details</p>
         </div>
-        <span className={`badge ${statusColors[invoice.status]} capitalize`}>
+        <span className={`badge ${statusColors[invoice.status as InvoiceStatus]} capitalize`}>
           {invoice.status}
         </span>
       </div>
@@ -84,7 +113,7 @@ export default function InvoiceDetailPage() {
             <div className="flex justify-between items-start border-b border-primary-200 pb-6 mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary-900">INVOICE</h2>
-                <p className="text-primary-500">{invoice.invoiceNumber}</p>
+                <p className="text-primary-500">{invoice.invoice_number}</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-primary-900">RentFlow</p>
@@ -98,12 +127,12 @@ export default function InvoiceDetailPage() {
             <div className="grid grid-cols-2 gap-6 mb-6">
               <div>
                 <p className="text-sm text-primary-500 mb-2">Bill To:</p>
-                <p className="font-semibold text-primary-900">{invoice.customerName}</p>
-                <p className="text-sm text-primary-600">GSTIN: {invoice.customerGstin}</p>
+                <p className="font-semibold text-primary-900">{invoice.customer_name}</p>
+                <p className="text-sm text-primary-600">GSTIN: {invoice.customer_gstin || 'N/A'}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-primary-500">Invoice Date: <span className="text-primary-900">{format(new Date(invoice.createdAt), 'MMM d, yyyy')}</span></p>
-                <p className="text-sm text-primary-500 mt-1">Due Date: <span className="text-primary-900">{format(new Date(invoice.dueDate), 'MMM d, yyyy')}</span></p>
+                <p className="text-sm text-primary-500">Invoice Date: <span className="text-primary-900">{format(new Date(invoice.created_at), 'MMM d, yyyy')}</span></p>
+                <p className="text-sm text-primary-500 mt-1">Due Date: <span className="text-primary-900">{format(new Date(invoice.due_date), 'MMM d, yyyy')}</span></p>
               </div>
             </div>
 
@@ -118,12 +147,12 @@ export default function InvoiceDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-primary-100">
-                {invoice.lines.map((line) => (
+                {(invoice.lines || []).map((line: any) => (
                   <tr key={line.id}>
                     <td className="py-3 text-primary-900">{line.description}</td>
                     <td className="py-3 text-center text-primary-600">{line.quantity}</td>
-                    <td className="py-3 text-right text-primary-600">{formatPrice(line.unitPrice)}</td>
-                    <td className="py-3 text-right font-medium text-primary-900">{formatPrice(line.totalPrice)}</td>
+                    <td className="py-3 text-right text-primary-600">{formatPrice(line.unit_price)}</td>
+                    <td className="py-3 text-right font-medium text-primary-900">{formatPrice(line.total_price)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -135,26 +164,26 @@ export default function InvoiceDetailPage() {
                 <div className="w-64">
                   <div className="flex justify-between py-2">
                     <span className="text-primary-600">Subtotal</span>
-                    <span className="text-primary-900">{formatPrice(invoice.subtotal)}</span>
+                    <span className="text-primary-900">{formatPrice(invoice.subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between py-2">
-                    <span className="text-primary-600">GST ({invoice.taxRate}%)</span>
-                    <span className="text-primary-900">{formatPrice(invoice.taxAmount)}</span>
+                    <span className="text-primary-600">GST ({invoice.tax_rate || 18}%)</span>
+                    <span className="text-primary-900">{formatPrice(invoice.tax_amount || 0)}</span>
                   </div>
                   <div className="flex justify-between py-2 border-t border-primary-200 font-bold">
                     <span className="text-primary-900">Total</span>
-                    <span className="text-primary-900">{formatPrice(invoice.totalAmount)}</span>
+                    <span className="text-primary-900">{formatPrice(invoice.total_amount || 0)}</span>
                   </div>
-                  {invoice.paidAmount > 0 && (
+                  {(invoice.paid_amount || 0) > 0 && (
                     <>
                       <div className="flex justify-between py-2 text-green-600">
                         <span>Paid</span>
-                        <span>{formatPrice(invoice.paidAmount)}</span>
+                        <span>{formatPrice(invoice.paid_amount)}</span>
                       </div>
-                      {invoice.paidAmount < invoice.totalAmount && (
+                      {(invoice.paid_amount || 0) < (invoice.total_amount || 0) && (
                         <div className="flex justify-between py-2 font-bold text-yellow-600">
                           <span>Balance Due</span>
-                          <span>{formatPrice(invoice.totalAmount - invoice.paidAmount)}</span>
+                          <span>{formatPrice((invoice.total_amount || 0) - (invoice.paid_amount || 0))}</span>
                         </div>
                       )}
                     </>
@@ -201,7 +230,7 @@ export default function InvoiceDetailPage() {
                   className="btn btn-primary w-full"
                 >
                   <CreditCard size={18} />
-                  Pay Now {invoice.paidAmount > 0 ? formatPrice(invoice.totalAmount - invoice.paidAmount) : ''}
+                  Pay Now {(invoice.paid_amount || 0) > 0 ? formatPrice((invoice.total_amount || 0) - (invoice.paid_amount || 0)) : ''}
                 </button>
               )}
             </div>
@@ -213,17 +242,17 @@ export default function InvoiceDetailPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-primary-600">Total Amount</span>
-                <span className="font-semibold text-primary-900">{formatPrice(invoice.totalAmount)}</span>
+                <span className="font-semibold text-primary-900">{formatPrice(invoice.total_amount || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-primary-600">Amount Paid</span>
-                <span className="font-semibold text-green-600">{formatPrice(invoice.paidAmount)}</span>
+                <span className="font-semibold text-green-600">{formatPrice(invoice.paid_amount || 0)}</span>
               </div>
-              {invoice.paidAmount < invoice.totalAmount && (
+              {(invoice.paid_amount || 0) < (invoice.total_amount || 0) && (
                 <div className="flex items-center justify-between">
                   <span className="text-primary-600">Balance Due</span>
                   <span className="font-semibold text-yellow-600">
-                    {formatPrice(invoice.totalAmount - invoice.paidAmount)}
+                    {formatPrice((invoice.total_amount || 0) - (invoice.paid_amount || 0))}
                   </span>
                 </div>
               )}
@@ -233,11 +262,11 @@ export default function InvoiceDetailPage() {
                 <div className="w-full bg-primary-100 rounded-full h-2">
                   <div 
                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(invoice.paidAmount / invoice.totalAmount) * 100}%` }}
+                    style={{ width: `${((invoice.paid_amount || 0) / (invoice.total_amount || 1)) * 100}%` }}
                   />
                 </div>
                 <p className="text-xs text-primary-500 mt-1 text-center">
-                  {Math.round((invoice.paidAmount / invoice.totalAmount) * 100)}% paid
+                  {Math.round(((invoice.paid_amount || 0) / (invoice.total_amount || 1)) * 100)}% paid
                 </p>
               </div>
             </div>
@@ -252,7 +281,7 @@ export default function InvoiceDetailPage() {
                 <div>
                   <p className="text-xs text-primary-500">Created</p>
                   <p className="text-sm text-primary-900">
-                    {format(new Date(invoice.createdAt), 'MMM d, yyyy')}
+                    {format(new Date(invoice.created_at), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
@@ -261,7 +290,7 @@ export default function InvoiceDetailPage() {
                 <div>
                   <p className="text-xs text-primary-500">Due Date</p>
                   <p className="text-sm text-primary-900">
-                    {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
+                    {format(new Date(invoice.due_date), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
@@ -269,15 +298,15 @@ export default function InvoiceDetailPage() {
                 <Building2 size={18} className="text-primary-400" />
                 <div>
                   <p className="text-xs text-primary-500">Customer GSTIN</p>
-                  <p className="text-sm text-primary-900">{invoice.customerGstin}</p>
+                  <p className="text-sm text-primary-900">{invoice.customer_gstin || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Receipt size={18} className="text-primary-400" />
                 <div>
                   <p className="text-xs text-primary-500">Related Order</p>
-                  <Link to={`/orders/${invoice.orderId}`} className="text-sm text-primary-600 hover:text-primary-900">
-                    {invoice.orderId}
+                  <Link to={`/orders/${invoice.order_id}`} className="text-sm text-primary-600 hover:text-primary-900">
+                    {invoice.order_id || 'N/A'}
                   </Link>
                 </div>
               </div>
@@ -293,7 +322,7 @@ export default function InvoiceDetailPage() {
                 <div>
                   <p className="font-medium text-green-800">Fully Paid</p>
                   <p className="text-sm text-green-700">
-                    Paid on {format(new Date(invoice.updatedAt), 'MMM d, yyyy')}
+                    Paid on {format(new Date(invoice.updated_at), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>

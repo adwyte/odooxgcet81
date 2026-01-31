@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Search, Filter, ChevronDown, Eye, Edit2, Send, Trash2, Calendar, DollarSign } from 'lucide-react';
-import { mockQuotations } from '../../data/mockData';
+import { FileText, Search, Filter, ChevronDown, Eye, Edit2, Send, Trash2, Calendar, DollarSign, Loader2 } from 'lucide-react';
+import { quotationsApi, Quotation } from '../../api/quotations';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { QuotationStatus } from '../../types';
@@ -18,12 +18,32 @@ export default function QuotationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredQuotations = mockQuotations.filter(q => {
-    const matchesSearch = q.quotationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  useEffect(() => {
+    const fetchQuotations = async () => {
+      try {
+        setLoading(true);
+        const data = await quotationsApi.getQuotations(
+          statusFilter !== 'all' ? { status: statusFilter } : {}
+        );
+        setQuotations(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load quotations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchQuotations();
+  }, [statusFilter]);
+
+  const filteredQuotations = quotations.filter(q => {
+    const matchesSearch = q.quotation_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const formatPrice = (price: number) => {
@@ -33,6 +53,22 @@ export default function QuotationsPage() {
       maximumFractionDigits: 0,
     }).format(price);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,10 +138,10 @@ export default function QuotationsPage() {
                     <FileText size={20} className="text-primary-700" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-primary-900">{quotation.quotationNumber}</h3>
+                    <h3 className="font-semibold text-primary-900">{quotation.quotation_number}</h3>
                     <p className="text-sm text-primary-500">
-                      {user?.role !== 'customer' && `Customer: ${quotation.customerName} • `}
-                      Created {format(new Date(quotation.createdAt), 'MMM d, yyyy')}
+                      {user?.role !== 'customer' && `Customer: ${quotation.customer_name || 'N/A'} • `}
+                      Created {format(new Date(quotation.created_at), 'MMM d, yyyy')}
                     </p>
                   </div>
                 </div>
@@ -113,11 +149,11 @@ export default function QuotationsPage() {
                 <div className="flex flex-wrap gap-4 mt-3 text-sm">
                   <div className="flex items-center gap-1.5 text-primary-600">
                     <Calendar size={14} />
-                    Valid until {format(new Date(quotation.validUntil), 'MMM d, yyyy')}
+                    Valid until {quotation.valid_until ? format(new Date(quotation.valid_until), 'MMM d, yyyy') : 'N/A'}
                   </div>
                   <div className="flex items-center gap-1.5 text-primary-600">
                     <DollarSign size={14} />
-                    {quotation.lines.length} item(s)
+                    {(quotation.lines || []).length} item(s)
                   </div>
                 </div>
               </div>
@@ -126,9 +162,9 @@ export default function QuotationsPage() {
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-sm text-primary-500">Total Amount</p>
-                  <p className="text-xl font-bold text-primary-900">{formatPrice(quotation.totalAmount)}</p>
+                  <p className="text-xl font-bold text-primary-900">{formatPrice(quotation.total_amount)}</p>
                 </div>
-                <span className={`badge ${statusColors[quotation.status]} capitalize`}>
+                <span className={`badge ${statusColors[quotation.status as QuotationStatus] || 'badge-neutral'} capitalize`}>
                   {quotation.status}
                 </span>
               </div>
@@ -168,9 +204,9 @@ export default function QuotationsPage() {
             {/* Line Items Preview */}
             <div className="mt-4 pt-4 border-t border-primary-100">
               <div className="flex flex-wrap gap-2">
-                {quotation.lines.map((line) => (
+                {(quotation.lines || []).map((line) => (
                   <span key={line.id} className="px-3 py-1 bg-primary-50 rounded-full text-sm text-primary-700">
-                    {line.productName} × {line.quantity}
+                    {line.product_name} × {line.quantity}
                   </span>
                 ))}
               </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Truck, 
@@ -12,9 +12,10 @@ import {
   RotateCcw,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
-import { mockOrders } from '../../data/mockData';
+import { ordersApi, Order } from '../../api/orders';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { OrderStatus } from '../../types';
@@ -46,12 +47,32 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(orderPlaced);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredOrders = mockOrders.filter(o => {
-    const matchesSearch = o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const data = await ordersApi.getOrders(
+          statusFilter !== 'all' ? { status: statusFilter } : {}
+        );
+        setOrders(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrders();
+  }, [statusFilter]);
+
+  const filteredOrders = orders.filter(o => {
+    const matchesSearch = o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const formatPrice = (price: number) => {
@@ -61,6 +82,22 @@ export default function OrdersPage() {
       maximumFractionDigits: 0,
     }).format(price);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -155,10 +192,10 @@ export default function OrdersPage() {
                       <Truck size={20} className="text-primary-700" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-primary-900">{order.orderNumber}</h3>
+                      <h3 className="font-semibold text-primary-900">{order.order_number}</h3>
                       <p className="text-sm text-primary-500">
-                        {user?.role !== 'customer' && `Customer: ${order.customerName} • `}
-                        Created {format(new Date(order.createdAt), 'MMM d, yyyy')}
+                        {user?.role !== 'customer' && `Customer: ${order.customer_name || 'N/A'} • `}
+                        Created {format(new Date(order.created_at), 'MMM d, yyyy')}
                       </p>
                     </div>
                   </div>
@@ -166,15 +203,19 @@ export default function OrdersPage() {
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div className="flex items-center gap-1.5 text-primary-600">
                       <Calendar size={14} />
-                      {format(new Date(order.rentalStartDate), 'MMM d')} - {format(new Date(order.rentalEndDate), 'MMM d, yyyy')}
+                      {order.rental_start_date && order.rental_end_date ? (
+                        <>
+                          {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d, yyyy')}
+                        </>
+                      ) : 'N/A'}
                     </div>
                     <div className="flex items-center gap-1.5 text-primary-600">
                       <Package size={14} />
-                      {order.lines.length} item(s)
+                      {(order.lines || []).length} item(s)
                     </div>
                     <div className="flex items-center gap-1.5 text-primary-600">
                       <DollarSign size={14} />
-                      Paid: {formatPrice(order.paidAmount)} / {formatPrice(order.totalAmount)}
+                      Paid: {formatPrice(order.paid_amount || 0)} / {formatPrice(order.total_amount)}
                     </div>
                   </div>
                 </div>
@@ -183,10 +224,10 @@ export default function OrdersPage() {
                 <div className="flex items-center gap-6">
                   <div className="text-right">
                     <p className="text-sm text-primary-500">Total Amount</p>
-                    <p className="text-xl font-bold text-primary-900">{formatPrice(order.totalAmount)}</p>
+                    <p className="text-xl font-bold text-primary-900">{formatPrice(order.total_amount)}</p>
                   </div>
-                  <span className={`badge ${statusColors[order.status]} capitalize flex items-center gap-1`}>
-                    {statusIcons[order.status]}
+                  <span className={`badge ${statusColors[order.status as OrderStatus] || 'badge-neutral'} capitalize flex items-center gap-1`}>
+                    {statusIcons[order.status as OrderStatus]}
                     {order.status.replace('_', ' ')}
                   </span>
                 </div>
@@ -241,9 +282,9 @@ export default function OrdersPage() {
             {/* Line Items */}
             <div className="px-6 py-4 border-t border-primary-100">
               <div className="flex flex-wrap gap-2">
-                {order.lines.map((line) => (
+                {(order.lines || []).map((line) => (
                   <span key={line.id} className="px-3 py-1 bg-primary-100 rounded-full text-sm text-primary-700">
-                    {line.productName} × {line.quantity}
+                    {line.product_name} × {line.quantity}
                   </span>
                 ))}
               </div>
