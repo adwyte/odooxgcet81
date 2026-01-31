@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Package, 
-  Truck, 
-  RotateCcw, 
+import {
+  ArrowLeft,
+  Calendar,
+  Package,
+  Truck,
+  RotateCcw,
   Receipt,
   Phone,
   Mail,
@@ -34,11 +34,12 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [order, setOrder] = useState<any>(null);
   const [relatedInvoice, setRelatedInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -47,7 +48,7 @@ export default function OrderDetailPage() {
         setLoading(true);
         const orderData = await ordersApi.getOrder(id);
         setOrder(orderData);
-        
+
         // Try to find related invoice
         try {
           const invoice = await invoicesApi.getInvoiceByOrder(id);
@@ -103,11 +104,27 @@ export default function OrderDetailPage() {
 
   const currentStep = getCurrentStep();
 
+  const handleStatusChange = async (newStatus: OrderStatus) => {
+    if (!order) return;
+    try {
+      setLoading(true);
+      await ordersApi.updateOrder(order.id, { status: newStatus });
+      // Refresh order data
+      const updatedOrder = await ordersApi.getOrder(order.id);
+      setOrder(updatedOrder);
+      alert(`Order status updated to ${newStatus.replace('_', ' ')}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update order status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 hover:bg-primary-100 rounded-lg transition-colors"
         >
@@ -129,30 +146,28 @@ export default function OrderDetailPage() {
           <div className="relative">
             {/* Progress Line */}
             <div className="absolute top-5 left-0 right-0 h-0.5 bg-primary-200">
-              <div 
+              <div
                 className="h-full bg-primary-900 transition-all duration-500"
                 style={{ width: `${(currentStep / (statusSteps.length - 1)) * 100}%` }}
               />
             </div>
-            
+
             {/* Steps */}
             <div className="flex justify-between relative">
               {statusSteps.map((step, index) => {
                 const isCompleted = index <= currentStep;
                 const isCurrent = index === currentStep;
-                
+
                 return (
                   <div key={step} className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 transition-all ${
-                      isCompleted 
-                        ? 'bg-primary-900 text-white' 
-                        : 'bg-white border-2 border-primary-200 text-primary-400'
-                    } ${isCurrent ? 'ring-4 ring-primary-200' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 transition-all ${isCompleted
+                      ? 'bg-primary-900 text-white'
+                      : 'bg-white border-2 border-primary-200 text-primary-400'
+                      } ${isCurrent ? 'ring-4 ring-primary-200' : ''}`}>
                       {isCompleted ? <CheckCircle size={20} /> : (index + 1)}
                     </div>
-                    <p className={`text-xs mt-2 capitalize ${
-                      isCompleted ? 'text-primary-900 font-medium' : 'text-primary-400'
-                    }`}>
+                    <p className={`text-xs mt-2 capitalize ${isCompleted ? 'text-primary-900 font-medium' : 'text-primary-400'
+                      }`}>
                       {step.replace('_', ' ')}
                     </p>
                   </div>
@@ -322,21 +337,51 @@ export default function OrderDetailPage() {
               )}
               {(user?.role === 'vendor' || user?.role === 'admin') && (
                 <>
+                  {order.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleStatusChange('confirmed')}
+                        className="btn btn-primary w-full"
+                      >
+                        <CheckCircle size={18} />
+                        Confirm Order
+                      </button>
+                      <button className="btn btn-danger w-full">
+                        <XCircle size={18} />
+                        Cancel Order
+                      </button>
+                    </>
+                  )}
                   {order.status === 'confirmed' && (
-                    <button className="btn btn-primary w-full">
-                      <Truck size={18} />
-                      Mark as Picked Up
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setIsScheduleModalOpen(true)}
+                        className="btn btn-secondary w-full"
+                      >
+                        <Calendar size={18} />
+                        Schedule Pickup
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange('picked_up')}
+                        className="btn btn-primary w-full"
+                      >
+                        <Truck size={18} />
+                        Mark as Picked Up
+                      </button>
+                    </>
                   )}
                   {order.status === 'picked_up' && (
-                    <button className="btn btn-primary w-full">
+                    <button
+                      onClick={() => handleStatusChange('returned')}
+                      className="btn btn-primary w-full"
+                    >
                       <RotateCcw size={18} />
                       Mark as Returned
                     </button>
                   )}
                 </>
               )}
-              {order.status === 'pending' && (
+              {order.status === 'pending' && user?.role === 'customer' && (
                 <button className="btn btn-danger w-full">
                   <XCircle size={18} />
                   Cancel Order
@@ -375,6 +420,79 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Schedule Pickup Modal */}
+      {isScheduleModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-primary-900 mb-4">Schedule Pickup</h3>
+            <p className="text-primary-500 mb-6">
+              Select a date and time for the customer to pick up the items.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                // Combine date and time
+                const date = (document.getElementById('pickup-date') as HTMLInputElement).value;
+                const time = (document.getElementById('pickup-time') as HTMLInputElement).value;
+
+                if (!date || !time) {
+                  alert("Please select both date and time");
+                  return;
+                }
+
+                await ordersApi.updateOrder(order.id, {
+                  pickup_date: new Date(`${date}T${time}`).toISOString()
+                });
+
+                setIsScheduleModalOpen(false);
+                // Refresh order
+                const updatedOrder = await ordersApi.getOrder(order.id);
+                setOrder(updatedOrder);
+                alert("Pickup scheduled successfully!");
+              } catch (err) {
+                alert("Failed to schedule pickup");
+              }
+            }}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="label">Pickup Date</label>
+                  <input
+                    type="date"
+                    id="pickup-date"
+                    className="input"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <label className="label">Pickup Time</label>
+                  <input
+                    type="time"
+                    id="pickup-time"
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsScheduleModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Schedule Pickup
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

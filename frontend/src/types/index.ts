@@ -19,6 +19,7 @@ export interface User {
   postalCode?: string;
   country?: string;
   profilePhoto?: string;
+  phoneNumber?: string;
 }
 
 export interface AuthState {

@@ -44,6 +44,7 @@ export interface UserResponse {
   postal_code?: string;
   country?: string;
   profile_photo?: string;
+  phone_number?: string;
 }
 
 export interface OTPResponse {
@@ -164,6 +165,26 @@ class AuthApi {
     const token = localStorage.getItem('access_token');
     if (!token) throw new Error('No access token found');
 
+    const response = await fetch(`${this.baseUrl}/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse<UserResponse>(response);
+  }
+
+  async updateProfile(data: {
+    first_name?: string;
+    last_name?: string;
+    phone_number?: string;
+    company_name?: string;
+    business_category?: string;
+    gstin?: string;
+  }): Promise<UserResponse> {
+    const token = localStorage.getItem('access_token');
     const response = await fetch(`${this.baseUrl}/me`, {
       method: 'PUT',
       headers: {

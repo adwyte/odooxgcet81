@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     
     # OTP Settings
     OTP_EXPIRE_MINUTES: int = 10
-
+    
+    
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

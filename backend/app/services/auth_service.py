@@ -340,7 +340,8 @@ def user_to_response(user: User) -> UserResponse:
         
         is_active=user.is_active,
         referral_code=user.referral_code,
-        profile_photo=user.profile_photo
+        profile_photo=user.profile_photo,
+        phone_number=user.phone_number
     )
 
 

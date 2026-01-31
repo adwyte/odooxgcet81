@@ -38,7 +38,7 @@ export default function SettingsPage() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: getRawPhone(user?.phone || ''),
+    phone: user?.phoneNumber || '',
     avatar: '',
     // Customer specific fields
     address: user?.address || '',
@@ -130,28 +130,37 @@ export default function SettingsPage() {
         return;
       }
 
-      await authApi.updateProfile({
+      const updateData: any = {
         first_name: profileData.firstName,
         last_name: profileData.lastName,
-        // Save only 10 digit number as per requirement
+        phone_number: profileData.phone,
         phone: profileData.phone,
-        // Use profile address for customers, company address for vendors
+
         address: user?.role === 'customer' ? profileData.address : companyData.address,
         city: user?.role === 'customer' ? profileData.city : companyData.city,
         state: user?.role === 'customer' ? profileData.state : companyData.state,
         postal_code: user?.role === 'customer' ? profileData.postalCode : companyData.postalCode,
         country: user?.role === 'customer' ? 'India' : companyData.country,
-        // Company info
-        company_name: user?.role === 'vendor' ? companyData.companyName : undefined,
-        business_category: user?.role === 'vendor' ? companyData.businessCategory : undefined,
-        gstin: user?.role === 'vendor' ? companyData.gstin : undefined,
-      });
+      };
 
-      await refreshProfile();
+      if (user?.role === 'vendor') {
+        updateData.company_name = companyData.companyName;
+        updateData.business_category = companyData.businessCategory;
+        updateData.gstin = companyData.gstin;
+      }
+
+      await authApi.updateProfile(updateData);
+
+      if (refreshProfile) {
+        await refreshProfile();
+      } else {
+        window.location.reload();
+      }
+
       alert('Settings saved successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save settings:', error);
-      alert('Failed to save settings. Please try again.');
+      alert(error.message || 'Failed to save settings');
     } finally {
       setIsSaving(false);
     }
