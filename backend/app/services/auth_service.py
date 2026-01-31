@@ -71,7 +71,7 @@ def store_otp(email: str) -> str:
     return otp
 
 
-def verify_otp(email: str, otp: str) -> bool:
+def verify_otp(email: str, otp: str, consume: bool = True) -> bool:
     """Verify OTP for email"""
     if email not in otp_storage:
         return False
@@ -81,7 +81,9 @@ def verify_otp(email: str, otp: str) -> bool:
         return False
     if stored_otp != otp:
         return False
-    del otp_storage[email]
+    
+    if consume:
+        del otp_storage[email]
     return True
 
 

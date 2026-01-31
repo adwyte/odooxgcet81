@@ -157,15 +157,16 @@ async def forgot_password(request: OTPRequest, db: Session = Depends(get_db)):
 @router.post("/verify-otp", response_model=MessageResponse)
 async def verify_otp(request: OTPVerify):
     """Verify OTP (used before reset password)"""
-    is_valid = auth_service.verify_otp(request.email, request.otp)
+    is_valid = auth_service.verify_otp(request.email, request.otp, consume=False)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP"
         )
     
-    # Store a temporary token for password reset
-    reset_token = auth_service.store_otp(request.email)  # Reuse OTP storage for reset token
+    # Valid OTP - frontend can proceed to reset password screen
+    # We do NOT generate a new token here because the frontend will use the SAME OTP 
+    # for the reset-password call, which will consume it.
     
     return MessageResponse(
         message="OTP verified successfully",

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # Email Settings (for OTP)
     SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
+    SMTP_PORT: int = 465
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     EMAIL_FROM: str = "noreply@rentpe.com"
