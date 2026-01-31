@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Grid, List, Plus, ChevronDown, Clock, Calendar, CalendarDays, Loader2 } from 'lucide-react';
+import { Search, Filter, Grid, List, Plus, ChevronDown, Clock, Calendar, CalendarDays, Loader2, Trash2, Edit } from 'lucide-react';
 import { productsApi, Product, Category } from '../../api/products';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,26 +16,59 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const [productsData, categoriesData] = await Promise.all([
+        productsApi.getProducts(),
+        productsApi.getCategories()
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [productsData, categoriesData] = await Promise.all([
-          productsApi.getProducts(),
-          productsApi.getCategories()
-        ]);
-        setProducts(productsData);
-        setCategories(categoriesData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load products');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
+    fetchProducts();
   }, []);
+
+  const handleDeleteClick = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setProductToDelete(product);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
+    
+    try {
+      setDeleting(true);
+      await productsApi.deleteProduct(productToDelete.id);
+      setProducts(products.filter(p => p.id !== productToDelete.id));
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete product');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const canManageProduct = (product: Product) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role === 'vendor' && product.vendor_id === user.id) return true;
+    return false;
+  };
 
   const productCategories = ['All', ...categories.map(c => c.name)];
 
@@ -177,22 +210,40 @@ export default function ProductsPage() {
           {filteredProducts.map((product) => {
             const priceInfo = getPriceDisplay(product);
             return (
-              <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="card card-hover overflow-hidden group"
-              >
-                {/* Image */}
-                <div className="aspect-[4/3] bg-primary-100 overflow-hidden">
-                  <img
-                    src={(product.images && product.images[0]) || '/placeholder.jpg'}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
+              <div key={product.id} className="card card-hover overflow-hidden group relative">
+                {/* Action Buttons for Vendor/Admin */}
+                {canManageProduct(product) && (
+                  <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link
+                      to={`/products/${product.id}/edit`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 bg-white rounded-full shadow-md hover:bg-primary-50 text-primary-600"
+                      title="Edit product"
+                    >
+                      <Edit size={16} />
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, product)}
+                      className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 text-red-600"
+                      title="Delete product"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
                 
-                {/* Content */}
-                <div className="p-4 space-y-3">
+                <Link to={`/products/${product.id}`} className="block">
+                  {/* Image */}
+                  <div className="aspect-[4/3] bg-primary-100 overflow-hidden">
+                    <img
+                      src={(product.images && product.images[0]) || '/placeholder.jpg'}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                
+                  {/* Content */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
                     {product.available_quantity > 0 ? (
@@ -238,8 +289,9 @@ export default function ProductsPage() {
                       {product.available_quantity} available
                     </span>
                   </div>
-                </div>
-              </Link>
+                  </div>
+                </Link>
+              </div>
             );
           })}
         </div>
@@ -248,66 +300,85 @@ export default function ProductsPage() {
           {filteredProducts.map((product) => {
             const priceInfo = getPriceDisplay(product);
             return (
-              <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="card card-hover p-4 flex gap-6"
-              >
-                {/* Image */}
-                <div className="w-32 h-24 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
-                  <img
-                    src={(product.images && product.images[0]) || '/placeholder.jpg'}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <div key={product.id} className="card card-hover p-4 flex gap-6 relative group">
+                {/* Action Buttons for Vendor/Admin */}
+                {canManageProduct(product) && (
+                  <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link
+                      to={`/products/${product.id}/edit`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 bg-white rounded-full shadow-md hover:bg-primary-50 text-primary-600"
+                      title="Edit product"
+                    >
+                      <Edit size={16} />
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, product)}
+                      className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 text-red-600"
+                      title="Delete product"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
                 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
-                        {product.available_quantity > 0 ? (
-                          <span className="badge badge-success text-xs">Available</span>
-                        ) : (
-                          <span className="badge badge-danger text-xs">Out of Stock</span>
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-primary-900">{product.name}</h3>
-                      <p className="text-sm text-primary-500 line-clamp-1 mt-1">{product.description}</p>
-                    </div>
-                    
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-lg font-bold text-primary-900">{priceInfo.price}</span>
-                      <span className="text-sm text-primary-500">{priceInfo.unit}</span>
-                      <p className="text-xs text-primary-500 mt-1">{product.available_quantity} available</p>
-                    </div>
+                <Link to={`/products/${product.id}`} className="flex gap-6 flex-1">
+                  {/* Image */}
+                  <div className="w-32 h-24 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
+                    <img
+                      src={(product.images && product.images[0]) || '/placeholder.jpg'}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   
-                  {/* Pricing Options */}
-                  <div className="flex items-center gap-4 mt-3">
-                    {product.rental_pricing?.hourly && (
-                      <div className="flex items-center gap-1 text-sm text-primary-600">
-                        <Clock size={14} />
-                        {formatPrice(product.rental_pricing.hourly)}/hr
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
+                          {product.available_quantity > 0 ? (
+                            <span className="badge badge-success text-xs">Available</span>
+                          ) : (
+                            <span className="badge badge-danger text-xs">Out of Stock</span>
+                          )}
+                        </div>
+                        <h3 className="font-semibold text-primary-900">{product.name}</h3>
+                        <p className="text-sm text-primary-500 line-clamp-1 mt-1">{product.description}</p>
                       </div>
-                    )}
-                    {product.rental_pricing?.daily && (
-                      <div className="flex items-center gap-1 text-sm text-primary-600">
-                        <Calendar size={14} />
-                        {formatPrice(product.rental_pricing.daily)}/day
+                      
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-lg font-bold text-primary-900">{priceInfo.price}</span>
+                        <span className="text-sm text-primary-500">{priceInfo.unit}</span>
+                        <p className="text-xs text-primary-500 mt-1">{product.available_quantity} available</p>
                       </div>
-                    )}
-                    {product.rental_pricing?.weekly && (
-                      <div className="flex items-center gap-1 text-sm text-primary-600">
-                        <CalendarDays size={14} />
-                        {formatPrice(product.rental_pricing.weekly)}/week
-                      </div>
-                    )}
+                    </div>
+                    
+                    {/* Pricing Options */}
+                    <div className="flex items-center gap-4 mt-3">
+                      {product.rental_pricing?.hourly && (
+                        <div className="flex items-center gap-1 text-sm text-primary-600">
+                          <Clock size={14} />
+                          {formatPrice(product.rental_pricing.hourly)}/hr
+                        </div>
+                      )}
+                      {product.rental_pricing?.daily && (
+                        <div className="flex items-center gap-1 text-sm text-primary-600">
+                          <Calendar size={14} />
+                          {formatPrice(product.rental_pricing.daily)}/day
+                        </div>
+                      )}
+                      {product.rental_pricing?.weekly && (
+                        <div className="flex items-center gap-1 text-sm text-primary-600">
+                          <CalendarDays size={14} />
+                          {formatPrice(product.rental_pricing.weekly)}/week
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>
@@ -320,6 +391,52 @@ export default function ProductsPage() {
           </div>
           <h3 className="text-lg font-semibold text-primary-900">No products found</h3>
           <p className="text-primary-500 mt-1">Try adjusting your search or filter criteria</p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={() => setDeleteModalOpen(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setDeleteModalOpen(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Close modal"
+          />
+          <div className="relative bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-primary-900 mb-2">Delete Product</h3>
+            <p className="text-primary-600 mb-4">
+              Are you sure you want to delete <span className="font-medium">"{productToDelete.name}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="btn btn-secondary"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="btn bg-red-600 text-white hover:bg-red-700"
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
