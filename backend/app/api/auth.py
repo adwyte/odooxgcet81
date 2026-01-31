@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 from app.db.session import SessionLocal
-from app.db import get_db
+from app.api.deps import get_db
 from app.core.config import settings
 from app.schemas.auth import (
     UserCreate, UserLogin, UserResponse, TokenResponse,

@@ -11,17 +11,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
-from app.db import get_db
+from app.api.deps import get_db
 from app.db.models.user import User, UserRole, generate_referral_code
 from app.schemas.auth import UserCreate, UserResponse, UserUpdate
 from app.db.session import SessionLocal
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Referral bonus amounts
 REFERRAL_BONUS_NEW_USER = 500.0  # New user gets ₹500
@@ -350,7 +343,7 @@ def user_to_response(user: User) -> UserResponse:
         is_active=user.is_active,
         referral_code=user.referral_code,
         profile_photo=user.profile_photo,
-        phone_number=user.phone_number
+
     )
 
 
