@@ -22,6 +22,7 @@ interface SignupData {
   gstin?: string;
   password: string;
   role: 'customer' | 'vendor';
+  referralCode?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +37,7 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   gstin: apiUser.gstin || '',
   role: apiUser.role.toLowerCase() as UserRole,
   createdAt: new Date().toISOString(),
+  referralCode: apiUser.referral_code,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -92,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         business_category: data.businessCategory,
         gstin: data.gstin,
         role: data.role.toUpperCase() as 'CUSTOMER' | 'VENDOR',
+        referral_code: data.referralCode,
       });
       handleAuthResponse(response);
     } catch (error) {

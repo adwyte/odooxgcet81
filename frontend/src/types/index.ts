@@ -11,6 +11,7 @@ export interface User {
   gstin?: string;
   role: UserRole;
   createdAt: string;
+  referralCode?: string;
 }
 
 export interface AuthState {

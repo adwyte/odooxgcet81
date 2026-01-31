@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Check, ArrowLeft, Building2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, ArrowRight, Check, ArrowLeft, Building2, Gift, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/auth';
 
 const BUSINESS_CATEGORIES = [
   'Construction & Heavy Equipment',
@@ -20,6 +21,7 @@ const BUSINESS_CATEGORIES = [
 
 export default function VendorSignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signup, isLoading } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -35,12 +37,67 @@ export default function VendorSignupPage() {
     state: '',
     password: '',
     confirmPassword: '',
+    referralCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  
+  // Referral code validation state
+  const [referralValidation, setReferralValidation] = useState<{
+    checking: boolean;
+    valid: boolean | null;
+    message: string;
+  }>({ checking: false, valid: null, message: '' });
+
+  // Debounced referral code validation
+  const validateReferralCode = useCallback(async (code: string) => {
+    if (!code || code.length < 8) {
+      setReferralValidation({ checking: false, valid: null, message: '' });
+      return;
+    }
+    
+    setReferralValidation({ checking: true, valid: null, message: '' });
+    
+    try {
+      const result = await authApi.validateReferralCode(code);
+      setReferralValidation({
+        checking: false,
+        valid: result.valid,
+        message: result.message,
+      });
+    } catch {
+      setReferralValidation({
+        checking: false,
+        valid: false,
+        message: 'Failed to validate referral code',
+      });
+    }
+  }, []);
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setFormData(prev => ({ ...prev, referralCode: refCode.toUpperCase() }));
+      validateReferralCode(refCode.toUpperCase());
+    }
+  }, [searchParams, validateReferralCode]);
+
+  // Debounce referral code validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.referralCode.length === 8) {
+        validateReferralCode(formData.referralCode);
+      } else if (formData.referralCode.length === 0) {
+        setReferralValidation({ checking: false, valid: null, message: '' });
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [formData.referralCode, validateReferralCode]);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', met: formData.password.length >= 8 },
@@ -141,6 +198,7 @@ export default function VendorSignupPage() {
         gstin: formData.gstin || undefined,
         password: formData.password,
         role: 'vendor',
+        referralCode: formData.referralCode || undefined,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -397,6 +455,49 @@ export default function VendorSignupPage() {
             />
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
               <p className="text-sm text-red-500 mt-1">Passwords do not match</p>
+            )}
+          </div>
+
+          {/* Referral Code */}
+          <div className="mt-4">
+            <label htmlFor="referralCode" className="label">
+              <div className="flex items-center gap-2">
+                <Gift size={16} className="text-accent-600" />
+                Referral Code <span className="text-primary-400">(Optional)</span>
+              </div>
+            </label>
+            <div className="relative">
+              <input
+                id="referralCode"
+                type="text"
+                value={formData.referralCode}
+                onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                className={`input pr-10 ${
+                  referralValidation.valid === true ? 'border-green-500' : 
+                  referralValidation.valid === false ? 'border-red-300' : ''
+                }`}
+                placeholder="Enter 8-character referral code"
+                maxLength={8}
+              />
+              {referralValidation.checking && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-400 animate-spin" />
+              )}
+              {!referralValidation.checking && referralValidation.valid === true && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+              )}
+              {!referralValidation.checking && referralValidation.valid === false && (
+                <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+              )}
+            </div>
+            {referralValidation.message && (
+              <p className={`text-sm mt-1 ${referralValidation.valid ? 'text-green-600' : 'text-red-500'}`}>
+                {referralValidation.valid && '🎉 '}{referralValidation.message}
+              </p>
+            )}
+            {formData.referralCode && formData.referralCode.length < 8 && !referralValidation.checking && (
+              <p className="text-sm text-primary-400 mt-1">
+                Enter all 8 characters to validate
+              </p>
             )}
           </div>
         </div>

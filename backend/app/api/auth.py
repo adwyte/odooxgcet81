@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.schemas.auth import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
     OTPRequest, OTPVerify, PasswordReset, TokenRefresh,
-    MessageResponse, OTPResponse
+    MessageResponse, OTPResponse, ReferralCodeValidation
 )
 from app.services import auth_service, email_service
 
@@ -33,6 +33,20 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Validate referral code if provided
+    if user_data.referral_code:
+        referrer = auth_service.get_user_by_referral_code(db, user_data.referral_code)
+        if not referrer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid referral code"
+            )
+        if referrer.referral_used:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This referral code has already been used"
+            )
+    
     user = auth_service.create_user(db, user_data)
     
     access_token = auth_service.create_access_token({"sub": str(user.id)})
@@ -43,6 +57,22 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         refresh_token=refresh_token,
         user=auth_service.user_to_response(user)
     )
+
+
+@router.get("/validate-referral/{code}", response_model=ReferralCodeValidation)
+async def validate_referral_code(code: str, db: Session = Depends(get_db)):
+    """Validate a referral code"""
+    if not code or len(code) != 8:
+        return ReferralCodeValidation(valid=False, message="Invalid referral code format")
+    
+    referrer = auth_service.get_user_by_referral_code(db, code.upper())
+    if not referrer:
+        return ReferralCodeValidation(valid=False, message="Invalid referral code")
+    
+    if referrer.referral_used:
+        return ReferralCodeValidation(valid=False, message="This referral code has already been used")
+    
+    return ReferralCodeValidation(valid=True, message="Valid! You'll get ₹500 bonus on signup")
 
 
 @router.post("/login", response_model=TokenResponse)
