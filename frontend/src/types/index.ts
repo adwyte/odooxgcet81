@@ -178,7 +178,7 @@ export interface Invoice {
 }
 
 // Payment Types
-export type PaymentMethod = 'online' | 'card' | 'bank_transfer' | 'cash';
+export type PaymentMethod = 'online' | 'card' | 'bank_transfer' | 'cash' | 'wallet';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface Payment {
