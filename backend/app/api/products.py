@@ -62,6 +62,8 @@ class CategoryResponse(BaseModel):
     name: str
     description: Optional[str] = None
     is_active: bool
+    product_count: int = 0
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -139,17 +141,24 @@ def product_to_response(product: Product) -> ProductResponse:
 
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(db: Session = Depends(get_db)):
-    """Get all categories"""
+    """Get all categories with product counts"""
+    from sqlalchemy import func
+    
+    # Get categories with product count
     categories = db.query(Category).filter(Category.is_active == True).all()
-    return [
-        CategoryResponse(
+    
+    result = []
+    for c in categories:
+        product_count = db.query(func.count(Product.id)).filter(Product.category_id == c.id).scalar() or 0
+        result.append(CategoryResponse(
             id=str(c.id),
             name=c.name,
             description=c.description,
-            is_active=c.is_active
-        )
-        for c in categories
-    ]
+            is_active=c.is_active,
+            product_count=product_count,
+            created_at=c.created_at.isoformat() if hasattr(c, 'created_at') and c.created_at else None
+        ))
+    return result
 
 
 @router.post("/categories", response_model=CategoryResponse)
@@ -176,7 +185,9 @@ async def create_category(
         id=str(category.id),
         name=category.name,
         description=category.description,
-        is_active=category.is_active
+        is_active=category.is_active,
+        product_count=0,
+        created_at=category.created_at.isoformat() if category.created_at else None
     )
 
 

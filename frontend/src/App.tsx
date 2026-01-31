@@ -40,9 +40,8 @@ import WalletPage from './pages/wallet/WalletPage';
 // Admin Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage from './pages/admin/UsersPage';
-import VendorsPage from './pages/admin/VendorsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
-import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import TransactionsPage from './pages/admin/TransactionsPage';
 
 export default function App() {
   return (
@@ -58,7 +57,7 @@ export default function App() {
               <Route path="/signup/vendor" element={<VendorSignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             </Route>
-            
+
             {/* OAuth Callback (no layout) */}
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
@@ -90,9 +89,8 @@ export default function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
-              <Route path="/admin/vendors" element={<VendorsPage />} />
               <Route path="/admin/categories" element={<CategoriesPage />} />
-              <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              <Route path="/admin/transactions" element={<TransactionsPage />} />
             </Route>
 
             {/* Redirects */}
