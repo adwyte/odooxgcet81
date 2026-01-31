@@ -22,10 +22,7 @@ interface SignupData {
   businessCategory?: string;
   gstin?: string;
   password: string;
-<<<<<<< HEAD
   role: 'customer' | 'vendor';
-=======
->>>>>>> origin/auth_and_login
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -95,10 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         company_name: data.companyName,
         business_category: data.businessCategory,
         gstin: data.gstin,
-<<<<<<< HEAD
         role: data.role.toUpperCase() as 'CUSTOMER' | 'VENDOR',
-=======
->>>>>>> origin/auth_and_login
       });
       handleAuthResponse(response);
     } catch (error) {
