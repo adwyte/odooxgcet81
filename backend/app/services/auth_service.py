@@ -14,6 +14,14 @@ from app.core.config import settings
 from app.db import get_db
 from app.db.models.user import User, UserRole, generate_referral_code
 from app.schemas.auth import UserCreate, UserResponse, UserUpdate
+from app.db.session import SessionLocal
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Referral bonus amounts
 REFERRAL_BONUS_NEW_USER = 500.0  # New user gets ₹500
@@ -348,10 +356,9 @@ def user_to_response(user: User) -> UserResponse:
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)  # Inject DB session
+    db: Session = Depends(get_db)
 ) -> User:
     """Get current user from JWT token"""
-    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
