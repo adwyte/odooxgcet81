@@ -254,6 +254,7 @@ async def get_products(
     category: Optional[str] = None,
     is_published: Optional[bool] = None,
     vendor_id: Optional[str] = None,
+    sort_by: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db)
@@ -279,6 +280,20 @@ async def get_products(
     
     if vendor_id:
         query = query.filter(Product.vendor_id == uuid.UUID(vendor_id))
+    
+    # Sorting
+    if sort_by == 'price_asc':
+        # Default to daily rental price for sorting
+        query = query.order_by(Product.rental_price_daily.asc())
+    elif sort_by == 'price_desc':
+        query = query.order_by(Product.rental_price_daily.desc())
+    elif sort_by == 'quantity_asc':
+        query = query.order_by((Product.quantity_on_hand - Product.reserved_quantity).asc())
+    elif sort_by == 'quantity_desc':
+        query = query.order_by((Product.quantity_on_hand - Product.reserved_quantity).desc())
+    else:
+        # Default sort by creation
+        query = query.order_by(Product.created_at.desc())
     
     products = query.offset(skip).limit(limit).all()
     return [product_to_response(p) for p in products]

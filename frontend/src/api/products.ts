@@ -101,6 +101,7 @@ class ProductsApi {
     category?: string;
     is_published?: boolean;
     vendor_id?: string;
+    sort_by?: string;
     skip?: number;
     limit?: number;
   }): Promise<Product[]> {
@@ -109,6 +110,7 @@ class ProductsApi {
     if (params?.category) searchParams.append('category', params.category);
     if (params?.is_published !== undefined) searchParams.append('is_published', String(params.is_published));
     if (params?.vendor_id) searchParams.append('vendor_id', params.vendor_id);
+    if (params?.sort_by) searchParams.append('sort_by', params.sort_by);
     if (params?.skip) searchParams.append('skip', String(params.skip));
     if (params?.limit) searchParams.append('limit', String(params.limit));
 

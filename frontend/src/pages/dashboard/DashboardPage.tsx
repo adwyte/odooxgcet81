@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  TrendingUp, 
-  Package, 
-  ShoppingCart, 
-  Clock, 
-  DollarSign, 
-  ArrowUpRight, 
+import {
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  Clock,
+  DollarSign,
+  ArrowUpRight,
   ArrowDownRight,
   BarChart3,
   Calendar,
@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,7 +41,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -77,6 +77,7 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <DollarSign size={24} />,
       roles: ['vendor', 'admin'],
+      link: '/reports/revenue',
     },
     {
       title: user?.role === 'customer' ? 'My Orders' : 'Total Orders',
@@ -85,6 +86,7 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <ShoppingCart size={24} />,
       roles: ['customer', 'vendor', 'admin'],
+      link: user?.role === 'customer' ? '/orders?filter=paid' : '/orders',
     },
     {
       title: 'Active Rentals',
@@ -93,6 +95,7 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <Package size={24} />,
       roles: ['customer', 'vendor', 'admin'],
+      link: '/orders?status=picked_up',
     },
     {
       title: 'Pending Returns',
@@ -101,6 +104,7 @@ export default function DashboardPage() {
       changeType: 'negative',
       icon: <Clock size={24} />,
       roles: ['customer', 'vendor', 'admin'],
+      link: '/orders?filter=approaching',
     },
     {
       title: 'Total Products',
@@ -109,6 +113,7 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <Package size={24} />,
       roles: ['vendor', 'admin'],
+      link: '/products',
     },
     {
       title: 'Active Vendors',
@@ -117,6 +122,7 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <Building2 size={24} />,
       roles: ['admin'],
+      link: '/vendors',
     },
     {
       title: 'Total Users',
@@ -125,10 +131,11 @@ export default function DashboardPage() {
       changeType: 'positive',
       icon: <Users size={24} />,
       roles: ['admin'],
+      link: '/users',
     },
   ];
 
-  const filteredStats = statCards.filter(stat => 
+  const filteredStats = statCards.filter(stat =>
     user && stat.roles.includes(user.role)
   ).slice(0, 4);
 
@@ -152,29 +159,44 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredStats.map((stat, index) => (
-          <div key={index} className="card p-6">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-900">
-                {stat.icon}
+        {filteredStats.map((stat, index) => {
+          const content = (
+            <>
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-900">
+                  {stat.icon}
+                </div>
+                <span className={`inline-flex items-center text-sm font-medium ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                  {stat.changeType === 'positive' ? (
+                    <ArrowUpRight size={16} />
+                  ) : (
+                    <ArrowDownRight size={16} />
+                  )}
+                  {stat.change}
+                </span>
               </div>
-              <span className={`inline-flex items-center text-sm font-medium ${
-                stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stat.changeType === 'positive' ? (
-                  <ArrowUpRight size={16} />
-                ) : (
-                  <ArrowDownRight size={16} />
-                )}
-                {stat.change}
-              </span>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-primary-900">{stat.value}</p>
+                <p className="text-sm text-primary-500">{stat.title}</p>
+              </div>
+            </>
+          );
+
+          if (stat.link) {
+            return (
+              <a key={index} href={stat.link} className="card p-6 hover:shadow-md transition-shadow">
+                {content}
+              </a>
+            );
+          }
+
+          return (
+            <div key={index} className="card p-6">
+              {content}
             </div>
-            <div className="mt-4">
-              <p className="text-2xl font-bold text-primary-900">{stat.value}</p>
-              <p className="text-sm text-primary-500">{stat.title}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Charts and Tables Row */}
@@ -190,14 +212,14 @@ export default function DashboardPage() {
                 <option>All time</option>
               </select>
             </div>
-            
+
             {/* Simple Bar Chart */}
             <div className="space-y-4">
               {(stats?.revenue_by_month || []).map((item) => (
                 <div key={item.month} className="flex items-center gap-4">
                   <span className="w-10 text-sm text-primary-500">{item.month}</span>
                   <div className="flex-1 bg-primary-100 rounded-full h-4 overflow-hidden">
-                    <div 
+                    <div
                       className="bg-primary-900 h-full rounded-full transition-all duration-500"
                       style={{ width: `${(item.revenue / Math.max(...(stats?.revenue_by_month || []).map(m => m.revenue), 1)) * 100}%` }}
                     />
@@ -217,7 +239,7 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-primary-900">Top Rental Products</h2>
             <BarChart3 size={20} className="text-primary-400" />
           </div>
-          
+
           <div className="space-y-4">
             {(stats?.top_products || []).map((product, index) => (
               <div key={product.name} className="flex items-center gap-4">
@@ -240,7 +262,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-primary-900">My Rental Status</h2>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               {(stats?.orders_by_status || []).map((item) => (
                 <div key={item.status} className="bg-primary-50 rounded-xl p-4 text-center">
@@ -255,7 +277,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-primary-900">Orders by Status</h2>
             </div>
-            
+
             <div className="space-y-3">
               {(stats?.orders_by_status || []).map((item) => {
                 const total = (stats?.orders_by_status || []).reduce((acc, i) => acc + i.count, 0);
@@ -266,7 +288,7 @@ export default function DashboardPage() {
                   'Pending': 'bg-yellow-500',
                   'Cancelled': 'bg-red-500',
                 };
-                
+
                 return (
                   <div key={item.status} className="space-y-1">
                     <div className="flex justify-between text-sm">
@@ -274,7 +296,7 @@ export default function DashboardPage() {
                       <span className="font-medium text-primary-900">{item.count} ({percentage}%)</span>
                     </div>
                     <div className="w-full bg-primary-100 rounded-full h-2 overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full rounded-full ${colors[item.status] || 'bg-primary-500'}`}
                         style={{ width: `${percentage}%` }}
                       />
@@ -297,7 +319,7 @@ export default function DashboardPage() {
             </a>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -320,18 +342,23 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-primary-600">{order.customer_name || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-primary-600">
-                      {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d, yyyy')}
+                      {order.rental_start_date && order.rental_end_date ? (
+                        <>
+                          {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d, yyyy')}
+                        </>
+                      ) : (
+                        <span className="text-primary-400">N/A</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-primary-900">
                       {formatPrice(order.total_amount)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`badge ${
-                        order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
+                      <span className={`badge ${order.status === 'completed' || order.status === 'returned' ? 'badge-success' :
                         order.status === 'picked_up' ? 'badge-info' :
-                        order.status === 'confirmed' ? 'badge-info' :
-                        order.status === 'pending' ? 'badge-warning' : 'badge-danger'
-                      } capitalize`}>
+                          order.status === 'confirmed' ? 'badge-info' :
+                            order.status === 'pending' ? 'badge-warning' : 'badge-danger'
+                        } capitalize`}>
                         {order.status.replace('_', ' ')}
                       </span>
                     </td>
