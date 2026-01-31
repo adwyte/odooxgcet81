@@ -28,9 +28,19 @@ export default function CustomerSignupPage() {
 
   const isPasswordValid = passwordRequirements.every(req => req.met);
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
 
     if (!isPasswordValid) {
       setError('Please meet all password requirements');
@@ -56,8 +66,12 @@ export default function CustomerSignupPage() {
         role: 'customer',
       });
       navigate('/dashboard');
-    } catch {
-      setError('Signup failed. Please try again.');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Signup failed. Please try again.');
+      }
     }
   };
 

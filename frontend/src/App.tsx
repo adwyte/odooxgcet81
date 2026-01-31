@@ -15,6 +15,11 @@ import VendorSignupPage from './pages/auth/VendorSignupPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
+// Legal Pages
+import TermsPage from './pages/legal/TermsPage';
+import PrivacyPage from './pages/legal/PrivacyPage';
+import VendorAgreementPage from './pages/legal/VendorAgreementPage';
+
 // Main Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ProductsPage from './pages/products/ProductsPage';
@@ -54,6 +59,11 @@ export default function App() {
             
             {/* OAuth Callback (no layout) */}
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+
+            {/* Legal Pages (no layout) */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/vendor-agreement" element={<VendorAgreementPage />} />
 
             {/* Dashboard Routes */}
             <Route element={<DashboardLayout />}>

@@ -49,6 +49,11 @@ export default function VendorSignupPage() {
 
   const isPasswordValid = passwordRequirements.every(req => req.met);
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validateGSTIN = (gstin: string) => {
     if (!gstin) return true; // Optional
     const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
@@ -66,6 +71,11 @@ export default function VendorSignupPage() {
 
     if (!formData.businessCategory) {
       setError('Please select a business category');
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -101,8 +111,12 @@ export default function VendorSignupPage() {
         role: 'vendor',
       });
       navigate('/dashboard');
-    } catch {
-      setError('Signup failed. Please try again.');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Signup failed. Please try again.');
+      }
     }
   };
 
