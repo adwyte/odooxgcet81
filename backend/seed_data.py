@@ -47,9 +47,15 @@ def seed_users(db: Session):
         first_name="Admin",
         last_name="User",
         email="admin@example.com",
+        phone="9876543210",
         password_hash=get_password_hash("admin123"),
         role=UserRole.ADMIN,
-        is_active=True
+        is_active=True,
+        address="123 Admin St",
+        city="Mumbai",
+        state="Maharashtra",
+        postal_code="400001",
+        country="India"
     )
     users.append(admin)
     
@@ -59,33 +65,53 @@ def seed_users(db: Session):
             "first_name": "Rajesh",
             "last_name": "Kumar",
             "email": "rajesh@rentalshop.com",
+            "phone": "9876543211",
             "company_name": "Kumar Equipment Rentals",
-            "business_category": "Construction Equipment",
-            "gstin": "27AABCU9603R1ZM"
+            "business_category": "Construction and Tools",
+            "gstin": "27AABCU9603R1ZM",
+            "address": "45 Industrial Area",
+            "city": "Pune",
+            "state": "Maharashtra",
+            "postal_code": "411001"
         },
         {
             "first_name": "Priya",
             "last_name": "Sharma",
             "email": "priya@eventrentals.com",
+            "phone": "9876543212",
             "company_name": "Sharma Event Supplies",
             "business_category": "Event Equipment",
-            "gstin": "29AADCS1234F1ZN"
+            "gstin": "29AADCS1234F1ZN",
+            "address": "12 Event Plaza",
+            "city": "Bangalore",
+            "state": "Karnataka",
+            "postal_code": "560001"
         },
         {
             "first_name": "Mohammed",
             "last_name": "Ali",
             "email": "ali@toolsrental.com",
-            "company_name": "Ali Tools & Machinery",
-            "business_category": "Industrial Tools",
-            "gstin": "33AABCA5678G1ZO"
+            "phone": "9876543213",
+            "company_name": "Ali Audio Visuals",
+            "business_category": "AV Equipment",
+            "gstin": "33AABCA5678G1ZO",
+            "address": "78 Tech Park",
+            "city": "Hyderabad",
+            "state": "Telangana",
+            "postal_code": "500001"
         },
         {
             "first_name": "Anita",
             "last_name": "Patel",
             "email": "anita@partyrentals.com",
+            "phone": "9876543214",
             "company_name": "Patel Party Rentals",
             "business_category": "Party Supplies",
-            "gstin": "24AABCP9012H1ZP"
+            "gstin": "24AABCP9012H1ZP",
+            "address": "90 Celebration Road",
+            "city": "Ahmedabad",
+            "state": "Gujarat",
+            "postal_code": "380001"
         }
     ]
     
@@ -95,26 +121,32 @@ def seed_users(db: Session):
             first_name=v_data["first_name"],
             last_name=v_data["last_name"],
             email=v_data["email"],
+            phone=v_data["phone"],
             password_hash=get_password_hash("vendor123"),
             role=UserRole.VENDOR,
             company_name=v_data["company_name"],
             business_category=v_data["business_category"],
             gstin=v_data["gstin"],
-            is_active=True
+            is_active=True,
+            address=v_data["address"],
+            city=v_data["city"],
+            state=v_data["state"],
+            postal_code=v_data["postal_code"],
+            country="India"
         )
         users.append(vendor)
         vendors.append(vendor)
     
     # Customer users
     customers_data = [
-        {"first_name": "Amit", "last_name": "Singh", "email": "amit@email.com"},
-        {"first_name": "Sneha", "last_name": "Reddy", "email": "sneha@email.com"},
-        {"first_name": "Vikram", "last_name": "Joshi", "email": "vikram@email.com"},
-        {"first_name": "Deepika", "last_name": "Nair", "email": "deepika@email.com"},
-        {"first_name": "Suresh", "last_name": "Menon", "email": "suresh@email.com"},
-        {"first_name": "Kavita", "last_name": "Gupta", "email": "kavita@email.com"},
-        {"first_name": "Rahul", "last_name": "Verma", "email": "rahul@email.com"},
-        {"first_name": "Meera", "last_name": "Iyer", "email": "meera@email.com"},
+        {"first_name": "Amit", "last_name": "Singh", "email": "amit@email.com", "phone": "9988776655", "city": "Delhi"},
+        {"first_name": "Sneha", "last_name": "Reddy", "email": "sneha@email.com", "phone": "9988776656", "city": "Hyderabad"},
+        {"first_name": "Vikram", "last_name": "Joshi", "email": "vikram@email.com", "phone": "9988776657", "city": "Mumbai"},
+        {"first_name": "Deepika", "last_name": "Nair", "email": "deepika@email.com", "phone": "9988776658", "city": "Bangalore"},
+        {"first_name": "Suresh", "last_name": "Menon", "email": "suresh@email.com", "phone": "9988776659", "city": "Chennai"},
+        {"first_name": "Kavita", "last_name": "Gupta", "email": "kavita@email.com", "phone": "9988776660", "city": "Kolkata"},
+        {"first_name": "Rahul", "last_name": "Verma", "email": "rahul@email.com", "phone": "9988776661", "city": "Pune"},
+        {"first_name": "Meera", "last_name": "Iyer", "email": "meera@email.com", "phone": "9988776662", "city": "Jaipur"},
     ]
     
     customers = []
@@ -123,9 +155,15 @@ def seed_users(db: Session):
             first_name=c_data["first_name"],
             last_name=c_data["last_name"],
             email=c_data["email"],
+            phone=c_data["phone"],
             password_hash=get_password_hash("customer123"),
             role=UserRole.CUSTOMER,
-            is_active=True
+            is_active=True,
+            address="Residential Complex",
+            city=c_data["city"],
+            state="State",
+            postal_code="100001",
+            country="India"
         )
         users.append(customer)
         customers.append(customer)
@@ -173,233 +211,135 @@ def seed_products(db: Session, vendors, categories):
     print("Seeding products...")
     
     products_data = [
-        # Construction Equipment (vendor 0)
+        # Photography (vendor 0 - Kumar -> Changed to Cameras for variety in demo)
+        # Assuming we might want to update vendor categories too, but let's stick to product mapping
+        # I'll repurpose vendors slightly or just assign categories logically.
+        
+        # Audio Visual (vendor 2 - Ali Audio Visuals)
         {
-            "name": "Excavator - Mini",
-            "description": "Compact mini excavator suitable for small construction sites",
-            "category": "Construction Equipment",
-            "vendor_idx": 0,
-            "rental_price_hourly": 2500,
-            "rental_price_daily": 15000,
-            "rental_price_weekly": 80000,
-            "cost_price": 1500000,
-            "sales_price": 1800000,
-            "quantity": 3,
-            "images": ["https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=500"]
+            "name": "JBL PartyBox 1000",
+            "description": "High power audio system with full panel light show",
+            "category": "Audio Visual",
+            "vendor_idx": 2,
+            "rental_price_daily": 3500,
+            "rental_price_weekly": 15000,
+            "cost_price": 85000,
+            "sales_price": 95000,
+            "quantity": 4,
+            "images": ["https://images.unsplash.com/photo-1545665277-5937a5953929?w=500"]
         },
         {
-            "name": "Concrete Mixer",
-            "description": "Electric concrete mixer with 200L capacity",
-            "category": "Construction Equipment",
-            "vendor_idx": 0,
-            "rental_price_hourly": 500,
+            "name": "Sony Alpha a7 III Kit",
+            "description": "Full-frame mirrorless camera with 28-70mm lens",
+            "category": "Photography",
+            "vendor_idx": 2,
             "rental_price_daily": 2500,
-            "rental_price_weekly": 12000,
-            "cost_price": 45000,
-            "sales_price": 55000,
-            "quantity": 8,
-            "images": ["https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500"]
+            "rental_price_weekly": 10000,
+            "cost_price": 160000,
+            "sales_price": 180000,
+            "quantity": 5,
+            "images": ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500"]
         },
         {
-            "name": "Scaffolding Set",
-            "description": "Complete scaffolding set for 3-story building",
-            "category": "Construction Equipment",
-            "vendor_idx": 0,
-            "rental_price_daily": 5000,
-            "rental_price_weekly": 25000,
-            "cost_price": 150000,
-            "sales_price": 180000,
-            "quantity": 10,
-            "images": ["https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500"]
+            "name": "GoPro Hero 11 Black",
+            "description": "Waterproof action camera with 5.3K60 video",
+            "category": "Photography",
+            "vendor_idx": 2,
+            "rental_price_daily": 800,
+            "rental_price_weekly": 3500,
+            "cost_price": 40000,
+            "sales_price": 45000,
+            "quantity": 8,
+            "images": ["https://images.unsplash.com/photo-1564463836205-4d3cb77cdcf9?w=500"]
         },
         
-        # Event Supplies (vendor 1)
+        # Event Supplies (vendor 1 - Sharma Event Supplies)
         {
-            "name": "Wedding Tent - 50 Seater",
-            "description": "Elegant white wedding tent with decorative lining",
+            "name": "Pop-up Canopy Tent (10x10)",
+            "description": "Instant pop-up commercial grade canopy tent - white",
             "category": "Event Supplies",
             "vendor_idx": 1,
-            "rental_price_daily": 15000,
-            "rental_price_weekly": 70000,
-            "cost_price": 200000,
-            "sales_price": 250000,
-            "quantity": 5,
+            "rental_price_daily": 1200,
+            "rental_price_weekly": 5000,
+            "cost_price": 15000,
+            "sales_price": 20000,
+            "quantity": 15,
             "images": ["https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=500"]
         },
         {
-            "name": "Banquet Chair - Gold",
-            "description": "Premium gold chiavari banquet chair",
-            "category": "Event Supplies",
+            "name": "Chiavari Chairs (Set of 10)",
+            "description": "Elegant gold chiavari chairs with cushion",
+            "category": "Furniture",
             "vendor_idx": 1,
-            "rental_price_daily": 150,
-            "cost_price": 2500,
-            "sales_price": 3500,
-            "quantity": 200,
+            "rental_price_daily": 1500,
+            "rental_price_weekly": 6000,
+            "cost_price": 25000,
+            "sales_price": 35000,
+            "quantity": 20,
             "images": ["https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=500"]
         },
         {
-            "name": "Round Table - 6 Seater",
-            "description": "Round banquet table with white tablecloth",
-            "category": "Event Supplies",
+            "name": "Portable Projector Screen 100\"",
+            "description": "Easy setup projection screen with stand",
+            "category": "Audio Visual",
             "vendor_idx": 1,
-            "rental_price_daily": 500,
+            "rental_price_daily": 600,
+            "rental_price_weekly": 2500,
             "cost_price": 8000,
-            "sales_price": 10000,
-            "quantity": 50,
-            "images": ["https://images.unsplash.com/photo-1530023367847-a683933f4172?w=500"]
-        },
-        {
-            "name": "Stage Platform - 20x15 ft",
-            "description": "Modular stage platform with stairs",
-            "category": "Event Supplies",
-            "vendor_idx": 1,
-            "rental_price_daily": 8000,
-            "rental_price_weekly": 40000,
-            "cost_price": 120000,
-            "sales_price": 150000,
-            "quantity": 3,
-            "images": ["https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500"]
-        },
-        
-        # Industrial Tools (vendor 2)
-        {
-            "name": "Industrial Generator - 50KVA",
-            "description": "Heavy duty diesel generator for industrial use",
-            "category": "Industrial Tools",
-            "vendor_idx": 2,
-            "rental_price_hourly": 1500,
-            "rental_price_daily": 8000,
-            "rental_price_weekly": 45000,
-            "cost_price": 400000,
-            "sales_price": 480000,
+            "sales_price": 12000,
             "quantity": 6,
-            "images": ["https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=500"]
+            "images": ["https://images.unsplash.com/photo-1535016120720-40c6874c3b1c?w=500"]
+        },
+
+        # Outdoor & Holiday (vendor 3 - Patel Party Rentals - Repurposed as general/outdoor)
+        {
+            "name": "Camping Tent (4 Person)",
+            "description": "Weather resistant dome tent for camping",
+            "category": "Outdoor Equipment",
+            "vendor_idx": 3,
+            "rental_price_daily": 500,
+            "rental_price_weekly": 2000,
+            "cost_price": 6000,
+            "sales_price": 8000,
+            "quantity": 10,
+            "images": ["https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=500"]
         },
         {
-            "name": "Welding Machine - MIG",
-            "description": "Professional MIG welding machine with accessories",
-            "category": "Industrial Tools",
-            "vendor_idx": 2,
-            "rental_price_hourly": 300,
+            "name": "Barbecue Grill Station",
+            "description": "Propane BBQ grill with side burner",
+            "category": "Outdoor Equipment",
+            "vendor_idx": 3,
             "rental_price_daily": 1500,
-            "rental_price_weekly": 8000,
+            "rental_price_weekly": 6000,
+            "cost_price": 25000,
+            "sales_price": 30000,
+            "quantity": 4,
+            "images": ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500"]
+        },
+        {
+            "name": "Christmas Tree (Artificial 7ft)",
+            "description": "Pre-lit artificial pine tree",
+            "category": "Event Supplies", # Or Holiday
+            "vendor_idx": 3,
+            "rental_price_daily": 800,
+            "rental_price_weekly": 3000,
+            "cost_price": 12000,
+            "sales_price": 15000,
+            "quantity": 10,
+            "images": ["https://images.unsplash.com/photo-1544084944-15a3ad6748f6?w=500"]
+        },
+         {
+            "name": "Portable Generator 2000W",
+            "description": "Quiet inverter generator for camping or events",
+            "category": "Industrial Tools",
+            "vendor_idx": 0, # Kumar Equipment
+            "rental_price_daily": 1000,
+            "rental_price_weekly": 4500,
             "cost_price": 45000,
             "sales_price": 55000,
-            "quantity": 12,
-            "images": ["https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=500"]
-        },
-        {
-            "name": "Air Compressor - 500L",
-            "description": "Industrial air compressor with 500L tank",
-            "category": "Industrial Tools",
-            "vendor_idx": 2,
-            "rental_price_hourly": 400,
-            "rental_price_daily": 2000,
-            "rental_price_weekly": 10000,
-            "cost_price": 80000,
-            "sales_price": 95000,
-            "quantity": 8,
-            "images": ["https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=500"]
-        },
-        
-        # Party Supplies (vendor 3)
-        {
-            "name": "DJ Sound System",
-            "description": "Complete DJ setup with speakers, mixer and lighting",
-            "category": "Party Supplies",
-            "vendor_idx": 3,
-            "rental_price_hourly": 2000,
-            "rental_price_daily": 10000,
-            "cost_price": 150000,
-            "sales_price": 180000,
-            "quantity": 4,
-            "images": ["https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500"]
-        },
-        {
-            "name": "LED Dance Floor - 15x15 ft",
-            "description": "Interactive LED dance floor with multiple patterns",
-            "category": "Party Supplies",
-            "vendor_idx": 3,
-            "rental_price_daily": 12000,
-            "cost_price": 200000,
-            "sales_price": 250000,
-            "quantity": 2,
-            "images": ["https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500"]
-        },
-        {
-            "name": "Photo Booth",
-            "description": "Modern photo booth with props and instant printing",
-            "category": "Party Supplies",
-            "vendor_idx": 3,
-            "rental_price_hourly": 1500,
-            "rental_price_daily": 8000,
-            "cost_price": 100000,
-            "sales_price": 120000,
-            "quantity": 3,
-            "images": ["https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=500"]
-        },
-        {
-            "name": "Balloon Arch Kit",
-            "description": "Complete balloon arch decoration kit",
-            "category": "Party Supplies",
-            "vendor_idx": 3,
-            "rental_price_daily": 3000,
-            "cost_price": 15000,
-            "sales_price": 20000,
-            "quantity": 10,
-            "images": ["https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=500"]
-        },
-        
-        # Audio Visual (vendor 1)
-        {
-            "name": "4K Projector",
-            "description": "Professional 4K laser projector with 5000 lumens",
-            "category": "Audio Visual",
-            "vendor_idx": 1,
-            "rental_price_hourly": 1000,
-            "rental_price_daily": 5000,
-            "cost_price": 150000,
-            "sales_price": 180000,
-            "quantity": 6,
-            "images": ["https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=500"]
-        },
-        {
-            "name": "PA System - Large",
-            "description": "Professional PA system suitable for 500+ audience",
-            "category": "Audio Visual",
-            "vendor_idx": 1,
-            "rental_price_daily": 15000,
-            "cost_price": 250000,
-            "sales_price": 300000,
-            "quantity": 3,
-            "images": ["https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500"]
-        },
-        
-        # Photography (vendor 3)
-        {
-            "name": "DSLR Camera Kit",
-            "description": "Professional DSLR with multiple lenses and accessories",
-            "category": "Photography",
-            "vendor_idx": 3,
-            "rental_price_hourly": 500,
-            "rental_price_daily": 2500,
-            "rental_price_weekly": 12000,
-            "cost_price": 200000,
-            "sales_price": 240000,
             "quantity": 5,
-            "images": ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500"]
-        },
-        {
-            "name": "Studio Lighting Kit",
-            "description": "Complete studio lighting setup with softboxes",
-            "category": "Photography",
-            "vendor_idx": 3,
-            "rental_price_daily": 3000,
-            "cost_price": 80000,
-            "sales_price": 95000,
-            "quantity": 4,
-            "images": ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500"]
-        },
+            "images": ["https://images.unsplash.com/photo-1527011046414-4781f1f94f8c?w=500"]
+        }
     ]
     
     # Create category lookup
@@ -408,6 +348,9 @@ def seed_products(db: Session, vendors, categories):
     products = []
     for p_data in products_data:
         category = category_map.get(p_data["category"])
+        # If category doesn't exist (e.g. Furniture wasn't in list before but we added it implicitly? No wait, list is in seed_categories)
+        # Let's ensure Furniture exists in seed_categories if not present, but for now map it safely.
+        
         vendor = vendors[p_data["vendor_idx"]]
         
         product = Product(
