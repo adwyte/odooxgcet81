@@ -87,12 +87,16 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
 
 def create_user(db: Session, user_data: UserCreate) -> User:
     hashed_password = get_password_hash(user_data.password)
+    # Convert SignupRole to UserRole
+    role_value = user_data.role.value if hasattr(user_data.role, 'value') else str(user_data.role)
+    db_role = UserRole(role_value)
+    
     db_user = User(
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         email=user_data.email,
         password_hash=hashed_password,
-        role=user_data.role,
+        role=db_role,
         company_name=user_data.company_name,
         business_category=user_data.business_category,
         gstin=user_data.gstin,

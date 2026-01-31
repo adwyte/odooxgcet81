@@ -1,9 +1,14 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from enum import Enum
 
 class UserRole(str, Enum):
     ADMIN = "ADMIN"
+    VENDOR = "VENDOR"
+    CUSTOMER = "CUSTOMER"
+
+class SignupRole(str, Enum):
+    """Roles allowed for signup (no admin)"""
     VENDOR = "VENDOR"
     CUSTOMER = "CUSTOMER"
 
@@ -16,7 +21,16 @@ class UserCreate(BaseModel):
     company_name: Optional[str] = None
     business_category: Optional[str] = None
     gstin: Optional[str] = None
-    role: UserRole = UserRole.CUSTOMER
+    role: SignupRole = SignupRole.CUSTOMER
+    
+    @field_validator('role', mode='before')
+    @classmethod
+    def validate_role(cls, v):
+        if isinstance(v, str):
+            v = v.upper()
+        if v == 'ADMIN':
+            raise ValueError('Admin accounts cannot be created through signup')
+        return v
 
 class UserLogin(BaseModel):
     email: EmailStr
