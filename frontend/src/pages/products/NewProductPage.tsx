@@ -33,7 +33,8 @@ export default function NewProductPage() {
 
   useEffect(() => {
     // Redirect if not vendor or admin
-    if (user && user.role !== 'vendor' && user.role !== 'admin') {
+    const role = user?.role?.toUpperCase();
+    if (!loading && (!user || (role !== 'VENDOR' && role !== 'ADMIN'))) {
       navigate('/products');
       return;
     }

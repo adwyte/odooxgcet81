@@ -129,7 +129,7 @@ def order_to_response(order: RentalOrder) -> OrderResponse:
         customer_name=customer_name,
         vendor_id=str(order.vendor_id) if order.vendor_id else "",
         vendor_name=vendor_name,
-        status=order.status.value if order.status else "PENDING",
+        status=order.status.value.lower() if order.status else "pending",
         lines=lines,
         subtotal=order.subtotal or 0,
         tax_rate=order.tax_rate or 18,
@@ -257,6 +257,9 @@ async def create_order(
         # Update product reserved quantity
         if product:
             product.reserved_quantity = (product.reserved_quantity or 0) + line_data.quantity
+    
+    db.commit()
+    db.refresh(order)
     
     db.commit()
     db.refresh(order)

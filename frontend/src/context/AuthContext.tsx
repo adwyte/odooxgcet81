@@ -47,6 +47,7 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   postalCode: apiUser.postal_code,
   country: apiUser.country,
   profilePhoto: apiUser.profile_photo,
+  phoneNumber: apiUser.phone_number,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

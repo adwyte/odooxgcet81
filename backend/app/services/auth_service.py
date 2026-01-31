@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
+from app.db import get_db
 from app.db.models.user import User, UserRole, generate_referral_code
 from app.schemas.auth import UserCreate, UserResponse, UserUpdate
 from app.db.session import SessionLocal
@@ -348,7 +349,8 @@ def user_to_response(user: User) -> UserResponse:
         
         is_active=user.is_active,
         referral_code=user.referral_code,
-        profile_photo=user.profile_photo
+        profile_photo=user.profile_photo,
+        phone_number=user.phone_number
     )
 
 

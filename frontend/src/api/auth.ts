@@ -16,6 +16,7 @@ export interface UserUpdateData {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  phone_number?: string;
   company_name?: string;
   business_category?: string;
   gstin?: string;
@@ -44,6 +45,7 @@ export interface UserResponse {
   postal_code?: string;
   country?: string;
   profile_photo?: string;
+  phone_number?: string;
 }
 
 export interface OTPResponse {
@@ -174,6 +176,8 @@ class AuthApi {
     });
     return this.handleResponse<UserResponse>(response);
   }
+
+
 }
 
 export const authApi = new AuthApi();

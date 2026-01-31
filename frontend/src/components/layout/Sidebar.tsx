@@ -41,7 +41,7 @@ const navSections: NavSection[] = [
   {
     items: [
       { label: 'Dashboard', icon: <Home size={20} />, path: '/dashboard', roles: ['customer', 'vendor', 'admin'] },
-      { label: 'Products', icon: <Package size={20} />, path: '/products', roles: ['customer', 'admin'] },
+      { label: 'Products', icon: <Package size={20} />, path: '/products', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Cart', icon: <ShoppingCart size={20} />, path: '/cart', roles: ['customer'] },
       { label: 'Quotations', icon: <FileText size={20} />, path: '/quotations', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Orders', icon: <Truck size={20} />, path: '/orders', roles: ['customer', 'vendor', 'admin'] },

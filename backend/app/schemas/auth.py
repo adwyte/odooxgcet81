@@ -19,6 +19,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     phone: str
     password: str
+    phone_number: Optional[str] = None
     company_name: Optional[str] = None
     business_category: Optional[str] = None
     gstin: Optional[str] = None
@@ -53,17 +54,16 @@ class PasswordReset(BaseModel):
 class TokenRefresh(BaseModel):
     refresh_token: str
 
-class OAuthCallback(BaseModel):
-    code: str
-    state: Optional[str] = None
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
+    phone_number: Optional[str] = None
     company_name: Optional[str] = None
     business_category: Optional[str] = None
     gstin: Optional[str] = None
+    
     # Address fields
     address: Optional[str] = None
     city: Optional[str] = None
@@ -78,6 +78,7 @@ class UserResponse(BaseModel):
     last_name: str
     email: str
     phone: Optional[str] = None
+    phone_number: Optional[str] = None
     role: UserRole
     company_name: Optional[str] = None
     business_category: Optional[str] = None

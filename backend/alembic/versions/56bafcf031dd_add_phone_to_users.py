@@ -36,8 +36,8 @@ def upgrade() -> None:
                existing_type=postgresql.ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', name='transactionstatus'),
                server_default=None,
                existing_nullable=True)
-    op.drop_index('ix_wallet_transactions_created_at', table_name='wallet_transactions')
-    op.drop_index('ix_wallet_transactions_wallet_id', table_name='wallet_transactions')
+    # op.drop_index('ix_wallet_transactions_created_at', table_name='wallet_transactions')
+    # op.drop_index('ix_wallet_transactions_wallet_id', table_name='wallet_transactions')
     op.alter_column('wallets', 'balance',
                existing_type=sa.DOUBLE_PRECISION(precision=53),
                server_default=None,

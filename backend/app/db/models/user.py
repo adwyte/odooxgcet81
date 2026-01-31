@@ -59,6 +59,7 @@ class User(Base):
     country = Column(String, nullable=True, default="India")
 
     is_active = Column(Boolean, default=True)
+    phone_number = Column(String, nullable=True)  # WhatsApp number with country code
     profile_photo = Column(String, nullable=True)  # URL to profile photo
     created_at = Column(DateTime, server_default=func.now())
     
