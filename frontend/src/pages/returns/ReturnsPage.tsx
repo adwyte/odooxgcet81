@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  RotateCcw, 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  Eye, 
-  Calendar, 
+import {
+  RotateCcw,
+  Search,
+  Filter,
+  ChevronDown,
+  Eye,
+  Calendar,
   Package,
   Clock,
   CheckCircle,
@@ -49,20 +49,27 @@ const statusIcons: Record<ReturnStatus, React.ReactNode> = {
 // Generate returns from orders
 const generateReturnsFromOrders = (orders: Order[]): ReturnItem[] => {
   const returns: ReturnItem[] = [];
-  
+
   orders.forEach(order => {
-    if (order.status === 'picked_up' || order.status === 'returned' || order.status === 'completed') {
+    const orderStatus = order.status.toLowerCase();
+
+    // Check if order is relevant for returns
+    if (['picked_up', 'returned', 'completed', 'active', 'confirmed'].includes(orderStatus)) {
       (order.lines || []).forEach(line => {
-        const isOverdue = order.rental_end_date && isPast(new Date(order.rental_end_date)) && order.status === 'picked_up';
-        const isCompleted = order.status === 'returned' || order.status === 'completed';
-        
-        let status: ReturnStatus = 'pending';
+        // Determine isOverdue based on status and date
+        // An item is overdue if it's currently OUT (picked_up, active, confirmed) and past rental_end_date
+        const isOutOfHand = ['picked_up', 'active', 'confirmed'].includes(orderStatus);
+        const isOverdue = order.rental_end_date && isPast(new Date(order.rental_end_date)) && isOutOfHand;
+
+        const isCompleted = ['returned', 'completed'].includes(orderStatus);
+
+        let returnItemStatus: ReturnStatus = 'pending';
         if (isCompleted) {
-          status = 'completed';
+          returnItemStatus = 'completed';
         } else if (isOverdue) {
-          status = 'overdue';
+          returnItemStatus = 'overdue';
         }
-        
+
         returns.push({
           id: `ret-${order.id}-${line.id}`,
           orderId: order.id,
@@ -72,13 +79,13 @@ const generateReturnsFromOrders = (orders: Order[]): ReturnItem[] => {
           customerName: order.customer_name || 'N/A',
           scheduledReturnDate: order.rental_end_date,
           actualReturnDate: order.return_date,
-          status,
+          status: returnItemStatus,
           lateReturnFee: order.late_return_fee,
         });
       });
     }
   });
-  
+
   return returns;
 };
 
@@ -103,7 +110,7 @@ export default function ReturnsPage() {
         setLoading(false);
       }
     };
-    
+
     fetchOrders();
   }, []);
 
@@ -211,7 +218,7 @@ export default function ReturnsPage() {
               className="input pl-10"
             />
           </div>
-          
+
           <div className="relative">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -221,7 +228,7 @@ export default function ReturnsPage() {
               {statusFilter === 'all' ? 'All Status' : statusFilter}
               <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {showFilters && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-primary-200 rounded-xl shadow-lg py-2 z-10">
                 {['all', 'pending', 'scheduled', 'completed', 'overdue'].map((status) => (
@@ -231,9 +238,8 @@ export default function ReturnsPage() {
                       setStatusFilter(status as ReturnStatus | 'all');
                       setShowFilters(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${
-                      statusFilter === status ? 'bg-primary-100 font-medium' : ''
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${statusFilter === status ? 'bg-primary-100 font-medium' : ''
+                      }`}
                   >
                     {status === 'all' ? 'All Status' : status}
                   </button>
@@ -251,28 +257,27 @@ export default function ReturnsPage() {
             <RotateCcw size={48} className="mx-auto text-primary-300 mb-4" />
             <h3 className="text-lg font-medium text-primary-900 mb-2">No returns found</h3>
             <p className="text-primary-500">
-              {searchQuery || statusFilter !== 'all' 
+              {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your search or filter criteria'
                 : 'No rental returns to process at this time'}
             </p>
           </div>
         ) : (
           filteredReturns.map((returnItem) => {
-            const daysUntilReturn = returnItem.scheduledReturnDate 
+            const daysUntilReturn = returnItem.scheduledReturnDate
               ? differenceInDays(new Date(returnItem.scheduledReturnDate), new Date())
               : 0;
             const isOverdue = returnItem.status === 'overdue';
             const daysOverdue = isOverdue ? Math.abs(daysUntilReturn) : 0;
-            
+
             return (
               <div key={returnItem.id} className={`card p-6 card-hover ${isOverdue ? 'border-red-200 bg-red-50/50' : ''}`}>
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                   {/* Main Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isOverdue ? 'bg-red-100' : 'bg-primary-100'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOverdue ? 'bg-red-100' : 'bg-primary-100'
+                        }`}>
                         <Package size={20} className={isOverdue ? 'text-red-600' : 'text-primary-700'} />
                       </div>
                       <div>
@@ -284,7 +289,7 @@ export default function ReturnsPage() {
                         <span className="capitalize">{returnItem.status}</span>
                       </span>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-4 text-sm text-primary-500 mt-3">
                       <span className="flex items-center gap-1">
                         <Package size={14} />
@@ -327,19 +332,14 @@ export default function ReturnsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
-                    <Link 
+                    <Link
                       to={`/orders/${returnItem.orderId}`}
                       className="btn btn-secondary"
                     >
                       <Eye size={18} />
                       View Order
                     </Link>
-                    {(user?.role === 'vendor' || user?.role === 'admin') && returnItem.status !== 'completed' && (
-                      <button className="btn btn-primary">
-                        <CheckCircle size={18} />
-                        Mark Returned
-                      </button>
-                    )}
+
                   </div>
                 </div>
 
