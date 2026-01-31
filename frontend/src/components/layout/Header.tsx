@@ -38,7 +38,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           
           <div className="hidden sm:block">
             <h1 className="text-lg font-semibold text-primary-900">
-              Welcome back, {user?.name?.split(' ')[0]}
+              Welcome back, {user?.firstName}
             </h1>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             >
               <div className="w-8 h-8 bg-primary-200 rounded-full flex items-center justify-center">
                 <span className="text-sm font-semibold text-primary-700">
-                  {user?.name?.charAt(0).toUpperCase()}
+                  {user?.firstName?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <ChevronDown size={16} className="text-primary-500 hidden sm:block" />
@@ -83,7 +83,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-primary-200 rounded-xl shadow-lg py-2">
                 <div className="px-4 py-2 border-b border-primary-100">
-                  <p className="text-sm font-medium text-primary-900">{user?.name}</p>
+                  <p className="text-sm font-medium text-primary-900">{user?.firstName} {user?.lastName}</p>
                   <p className="text-xs text-primary-500">{user?.email}</p>
                 </div>
                 <Link

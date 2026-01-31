@@ -10,6 +10,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
 // Main Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -40,6 +41,9 @@ export default function App() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             </Route>
+            
+            {/* OAuth Callback (no layout) */}
+            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
             {/* Dashboard Routes */}
             <Route element={<DashboardLayout />}>

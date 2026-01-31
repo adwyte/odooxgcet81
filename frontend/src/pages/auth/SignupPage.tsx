@@ -3,18 +3,32 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+const BUSINESS_CATEGORIES = [
+  'Construction & Heavy Equipment',
+  'Events & Entertainment',
+  'Photography & Videography',
+  'Electronics & Technology',
+  'Furniture & Home',
+  'Medical Equipment',
+  'Sports & Recreation',
+  'Automotive',
+  'Industrial Tools',
+  'Other',
+];
+
 export default function SignupPage() {
   const navigate = useNavigate();
   const { signup, isLoading } = useAuth();
   
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     companyName: '',
+    businessCategory: '',
     gstin: '',
     password: '',
     confirmPassword: '',
-    couponCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -49,7 +63,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (!validateGSTIN(formData.gstin)) {
+    if (formData.gstin && !validateGSTIN(formData.gstin)) {
       setError('Please enter a valid GSTIN');
       return;
     }
@@ -61,12 +75,13 @@ export default function SignupPage() {
 
     try {
       await signup({
-        name: formData.name,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
-        companyName: formData.companyName,
-        gstin: formData.gstin,
+        companyName: formData.companyName || undefined,
+        businessCategory: formData.businessCategory || undefined,
+        gstin: formData.gstin || undefined,
         password: formData.password,
-        couponCode: formData.couponCode || undefined,
       });
       navigate('/dashboard');
     } catch {
@@ -90,33 +105,48 @@ export default function SignupPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="name" className="label">Full Name</label>
+            <label htmlFor="firstName" className="label">First Name</label>
             <input
-              id="name"
+              id="firstName"
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               className="input"
-              placeholder="John Doe"
+              placeholder="John"
               required
             />
           </div>
           <div>
-            <label htmlFor="email" className="label">Email</label>
+            <label htmlFor="lastName" className="label">Last Name</label>
             <input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              id="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               className="input"
-              placeholder="you@example.com"
+              placeholder="Doe"
               required
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="companyName" className="label">Company Name</label>
+          <label htmlFor="email" className="label">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="input"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="companyName" className="label">
+            Company Name <span className="text-primary-400">(Optional)</span>
+          </label>
           <input
             id="companyName"
             type="text"
@@ -124,13 +154,31 @@ export default function SignupPage() {
             onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
             className="input"
             placeholder="Your Company Ltd."
-            required
           />
         </div>
 
         <div>
+          <label htmlFor="businessCategory" className="label">
+            Business Category <span className="text-primary-400">(Optional)</span>
+          </label>
+          <select
+            id="businessCategory"
+            value={formData.businessCategory}
+            onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+            className="input"
+          >
+            <option value="">Select a category</option>
+            {BUSINESS_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label htmlFor="gstin" className="label">
-            GSTIN <span className="text-primary-400">(Required for invoicing)</span>
+            GSTIN <span className="text-primary-400">(Optional - Required for invoicing)</span>
           </label>
           <input
             id="gstin"
@@ -140,7 +188,6 @@ export default function SignupPage() {
             className={`input ${formData.gstin && !validateGSTIN(formData.gstin) ? 'input-error' : ''}`}
             placeholder="29ABCDE1234F1Z5"
             maxLength={15}
-            required
           />
           {formData.gstin && !validateGSTIN(formData.gstin) && (
             <p className="text-sm text-red-500 mt-1">Please enter a valid 15-character GSTIN</p>
@@ -195,20 +242,6 @@ export default function SignupPage() {
           {formData.confirmPassword && formData.password !== formData.confirmPassword && (
             <p className="text-sm text-red-500 mt-1">Passwords do not match</p>
           )}
-        </div>
-
-        <div>
-          <label htmlFor="couponCode" className="label">
-            Coupon Code <span className="text-primary-400">(Optional)</span>
-          </label>
-          <input
-            id="couponCode"
-            type="text"
-            value={formData.couponCode}
-            onChange={(e) => setFormData({ ...formData, couponCode: e.target.value.toUpperCase() })}
-            className="input"
-            placeholder="WELCOME20"
-          />
         </div>
 
         <label className="flex items-start gap-3 cursor-pointer">
