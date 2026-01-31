@@ -318,7 +318,7 @@ async def add_payment(
         if invoice.customer:
             try:
                 from app.services.email_service import send_email
-                from app.db.models.quotation import Quotation
+                from app.db.models.quotation import Quotation, QuotationStatus
                 
                 # Build Line Items Table
                 lines_html = """
@@ -393,34 +393,21 @@ async def add_payment(
                     </body>
                 </html>
                 """
-                send_email(invoice.customer.email, subject, html_content)
-                
-                # Cleanup Quotation Logic
                 if invoice.order_id:
                      # Access order via relationship or query
                      order_q = db.query(RentalOrder).filter(RentalOrder.id == invoice.order_id).first()
                      if order_q and order_q.quotation_id:
                          quotation = db.query(Quotation).filter(Quotation.id == order_q.quotation_id).first()
                          if quotation:
-                             print(f"Deleting linked quotation {quotation.id} for order {order_q.id}")
-                             db.delete(quotation)
-                             # db.commit() is handled by the caller (FastAPI dependency usually commits on success, 
-                             # or we need to rely on the final db.commit() call in this function)
-                             # Looking at the end of add_payment, likely it returns payment. 
-                             # We should check if explicit commit is needed.
-                             # If add_payment uses `db.commit()` at the end, it will commit this deletion too.
-                             
+                             print(f"Marking linked quotation {quotation.id} as ORDERED")
+                             quotation.status = QuotationStatus.ORDERED
+                             db.add(quotation)
+
             except Exception as e:
                 print(f"Failed to process post-payment actions: {e}")
                 import traceback
                 traceback.print_exc()
-                             
-            except Exception as e:
-                print(f"Failed to process post-payment actions: {e}")
-                
-    elif invoice.paid_amount > 0:
-        invoice.status = InvoiceStatus.PARTIAL
-                
+
     elif invoice.paid_amount > 0:
         invoice.status = InvoiceStatus.PARTIAL
     

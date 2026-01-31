@@ -16,6 +16,7 @@ class QuotationStatus(str, enum.Enum):
     REJECTED = "REJECTED"
     EXPIRED = "EXPIRED"
     CONFIRMED = "CONFIRMED" # Kept for backward compatibility if needed, or alias to ACCEPTED
+    ORDERED = "ORDERED"
 
 
 class QuotationLine(Base):

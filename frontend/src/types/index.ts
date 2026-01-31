@@ -80,7 +80,7 @@ export interface Product {
 }
 
 // Quotation & Order Types
-export type QuotationStatus = 'draft' | 'sent' | 'requested' | 'reviewed' | 'accepted' | 'rejected' | 'expired' | 'confirmed' | 'cancelled';
+export type QuotationStatus = 'draft' | 'sent' | 'requested' | 'reviewed' | 'accepted' | 'rejected' | 'expired' | 'confirmed' | 'cancelled' | 'ordered';
 export type OrderStatus = 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'completed' | 'cancelled';
 
 export interface RentalPeriodSelection {

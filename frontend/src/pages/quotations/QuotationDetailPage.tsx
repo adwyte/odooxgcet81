@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
     expired: 'badge-neutral',
     confirmed: 'badge-success',
     cancelled: 'badge-danger',
+    ordered: 'badge-neutral',
 };
 
 export default function QuotationDetailPage() {
@@ -378,6 +379,25 @@ export default function QuotationDetailPage() {
                                 </div>
                             )}
 
+                            {/* SUCCESS STATE */}
+                            {quotation.status.toUpperCase() === 'ORDERED' && (
+                                <div className="bg-blue-50 p-4 rounded-lg text-center border border-blue-100">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <CheckCircle size={24} className="text-blue-600" />
+                                    </div>
+                                    <p className="text-blue-900 font-bold mb-1">Order Placed</p>
+                                    <p className="text-blue-700 text-sm mb-3">
+                                        An order has been created from this quotation.
+                                    </p>
+                                    <button
+                                        onClick={() => navigate('/orders')}
+                                        className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    >
+                                        View Orders
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Other States */}
                             {quotation.status.toUpperCase() === 'DRAFT' && isCustomer && (
                                 <p className="text-sm text-center text-primary-500">
@@ -389,6 +409,6 @@ export default function QuotationDetailPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
