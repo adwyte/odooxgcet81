@@ -55,6 +55,9 @@ export default function CheckoutPage() {
     return format(new Date(dateStr), 'MMM d, yyyy');
   };
 
+  // Razorpay payment link
+  const RAZORPAY_PAYMENT_LINK = 'https://rzp.io/rzp/gg6pjKf';
+
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: 'address', label: 'Delivery Address' },
     { key: 'payment', label: 'Payment' },
@@ -92,6 +95,12 @@ export default function CheckoutPage() {
       });
       
       clearCart();
+      
+      // Redirect to Razorpay for online payment
+      if (paymentMethod === 'online') {
+        window.open(RAZORPAY_PAYMENT_LINK, '_blank');
+      }
+      
       navigate('/orders', { state: { orderPlaced: true } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to place order');

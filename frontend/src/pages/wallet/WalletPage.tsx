@@ -73,6 +73,9 @@ export default function WalletPage() {
     }
   };
 
+  // Razorpay payment link
+  const RAZORPAY_PAYMENT_LINK = 'https://rzp.io/rzp/gg6pjKf';
+
   const handleAddFunds = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = Number.parseFloat(amount);
@@ -82,6 +85,10 @@ export default function WalletPage() {
 
     setSubmitting(true);
     try {
+      // Open Razorpay payment link in new tab
+      window.open(RAZORPAY_PAYMENT_LINK, '_blank');
+      
+      // Record the pending transaction
       const request: AddFundsRequest = {
         amount: numAmount,
         payment_method: paymentMethod
