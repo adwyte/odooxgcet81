@@ -9,7 +9,7 @@ from app.schemas.auth import (
     OTPRequest, OTPVerify, PasswordReset, TokenRefresh,
     MessageResponse, OTPResponse
 )
-from app.services import auth_service
+from app.services import auth_service, email_service
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -112,8 +112,10 @@ async def forgot_password(request: OTPRequest, db: Session = Depends(get_db)):
     
     otp = auth_service.store_otp(request.email)
     
-    # TODO: Send email with OTP in production
-    # For now, we'll log it (remove in production!)
+    # Send email
+    email_service.send_otp_email(request.email, otp)
+    
+    # Log for debugging (keep until smtp is verified)
     print(f"[DEBUG] OTP for {request.email}: {otp}")
     
     return OTPResponse(
