@@ -34,6 +34,11 @@ export interface MessageResponse {
   success: boolean;
 }
 
+export interface ReferralCodeValidation {
+  valid: boolean;
+  message: string;
+}
+
 class AuthApi {
   private baseUrl: string;
 
@@ -126,7 +131,10 @@ class AuthApi {
     return `${this.baseUrl}/google`;
   }
 
-
+  async validateReferralCode(code: string): Promise<ReferralCodeValidation> {
+    const response = await fetch(`${this.baseUrl}/validate-referral/${code}`);
+    return this.handleResponse<ReferralCodeValidation>(response);
+  }
 }
 
 export const authApi = new AuthApi();

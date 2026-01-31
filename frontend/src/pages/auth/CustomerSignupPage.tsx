@@ -6,6 +6,7 @@ import { authApi } from '../../api/auth';
 
 export default function CustomerSignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signup, loginWithGoogle, isLoading } = useAuth();
 
   const [formData, setFormData] = useState({
