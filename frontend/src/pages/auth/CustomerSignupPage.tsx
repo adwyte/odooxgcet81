@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Check, ArrowLeft, Gift } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Check, ArrowLeft, Gift, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/auth';
 
 export default function CustomerSignupPage() {
   const navigate = useNavigate();
@@ -20,14 +21,60 @@ export default function CustomerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  
+  // Referral code validation state
+  const [referralValidation, setReferralValidation] = useState<{
+    checking: boolean;
+    valid: boolean | null;
+    message: string;
+  }>({ checking: false, valid: null, message: '' });
+
+  // Debounced referral code validation
+  const validateReferralCode = useCallback(async (code: string) => {
+    if (!code || code.length < 8) {
+      setReferralValidation({ checking: false, valid: null, message: '' });
+      return;
+    }
+    
+    setReferralValidation({ checking: true, valid: null, message: '' });
+    
+    try {
+      const result = await authApi.validateReferralCode(code);
+      setReferralValidation({
+        checking: false,
+        valid: result.valid,
+        message: result.message,
+      });
+    } catch {
+      setReferralValidation({
+        checking: false,
+        valid: false,
+        message: 'Failed to validate referral code',
+      });
+    }
+  }, []);
 
   // Check for referral code in URL
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
-      setFormData(prev => ({ ...prev, referralCode: refCode }));
+      setFormData(prev => ({ ...prev, referralCode: refCode.toUpperCase() }));
+      validateReferralCode(refCode.toUpperCase());
     }
-  }, [searchParams]);
+  }, [searchParams, validateReferralCode]);
+
+  // Debounce referral code validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.referralCode.length === 8) {
+        validateReferralCode(formData.referralCode);
+      } else if (formData.referralCode.length === 0) {
+        setReferralValidation({ checking: false, valid: null, message: '' });
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [formData.referralCode, validateReferralCode]);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', met: formData.password.length >= 8 },
@@ -261,18 +308,37 @@ export default function CustomerSignupPage() {
               Referral Code <span className="text-primary-400">(Optional)</span>
             </div>
           </label>
-          <input
-            id="referralCode"
-            type="text"
-            value={formData.referralCode}
-            onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-            className="input"
-            placeholder="Enter referral code to get ₹500 bonus"
-            maxLength={8}
-          />
-          {formData.referralCode && (
-            <p className="text-sm text-green-600 mt-1">
-              🎉 You'll get ₹500 in your wallet on signup!
+          <div className="relative">
+            <input
+              id="referralCode"
+              type="text"
+              value={formData.referralCode}
+              onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+              className={`input pr-10 ${
+                referralValidation.valid === true ? 'border-green-500' : 
+                referralValidation.valid === false ? 'border-red-300' : ''
+              }`}
+              placeholder="Enter 8-character referral code"
+              maxLength={8}
+            />
+            {referralValidation.checking && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-400 animate-spin" />
+            )}
+            {!referralValidation.checking && referralValidation.valid === true && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+            )}
+            {!referralValidation.checking && referralValidation.valid === false && (
+              <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+            )}
+          </div>
+          {referralValidation.message && (
+            <p className={`text-sm mt-1 ${referralValidation.valid ? 'text-green-600' : 'text-red-500'}`}>
+              {referralValidation.valid && '🎉 '}{referralValidation.message}
+            </p>
+          )}
+          {formData.referralCode && formData.referralCode.length < 8 && !referralValidation.checking && (
+            <p className="text-sm text-primary-400 mt-1">
+              Enter all 8 characters to validate
             </p>
           )}
         </div>

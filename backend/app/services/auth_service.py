@@ -114,6 +114,8 @@ def create_wallet_for_user(db: Session, user_id: str, initial_balance: float = 0
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             amount=initial_balance,
+            balance_before=0.0,
+            balance_after=initial_balance,
             transaction_type=TransactionType.CREDIT,
             status=TransactionStatus.COMPLETED,
             description="Referral signup bonus"
@@ -129,10 +131,13 @@ def add_referral_bonus(db: Session, user_id: str, amount: float, description: st
     
     wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
     if wallet:
+        balance_before = wallet.balance
         wallet.balance += amount
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
+            balance_before=balance_before,
+            balance_after=wallet.balance,
             transaction_type=TransactionType.CREDIT,
             status=TransactionStatus.COMPLETED,
             description=description

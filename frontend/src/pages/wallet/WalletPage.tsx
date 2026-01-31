@@ -203,14 +203,14 @@ export default function WalletPage() {
       </div>
 
       {/* Wallet Balance Card */}
-      <div className="bg-gradient-to-br from-accent-600 to-accent-700 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-white/20 rounded-xl">
-            <WalletIcon className="w-6 h-6" />
+      <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-6 text-white shadow-lg">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-4 bg-white/20 rounded-xl">
+            <WalletIcon className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-white/80 text-sm">Available Balance</p>
-            <p className="text-3xl font-bold">{formatCurrency(summary?.wallet.balance || 0)}</p>
+            <p className="text-white/80 text-sm font-medium">Available Balance</p>
+            <p className="text-4xl font-bold">{formatCurrency(summary?.wallet?.balance || 0)}</p>
           </div>
         </div>
         

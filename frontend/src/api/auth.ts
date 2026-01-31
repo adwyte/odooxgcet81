@@ -129,6 +129,11 @@ class AuthApi {
   getGithubAuthUrl(): string {
     return `${this.baseUrl}/github`;
   }
+
+  async validateReferralCode(code: string): Promise<{ valid: boolean; message: string }> {
+    const response = await fetch(`${this.baseUrl}/validate-referral/${code}`);
+    return this.handleResponse<{ valid: boolean; message: string }>(response);
+  }
 }
 
 export const authApi = new AuthApi();

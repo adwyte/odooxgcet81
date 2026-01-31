@@ -82,6 +82,10 @@ class MessageResponse(BaseModel):
     message: str
     success: bool = True
 
+class ReferralCodeValidation(BaseModel):
+    valid: bool
+    message: str
+
 class OTPResponse(BaseModel):
     message: str
     expires_in_minutes: int
