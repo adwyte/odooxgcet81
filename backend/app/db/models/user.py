@@ -59,5 +59,5 @@ class User(Base):
     referral_used = Column(Boolean, default=False)  # Has this user's referral code been used?
 
     # Relationships
-    wallet = relationship("Wallet", back_populates="user", uselist=False)
+    wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
     referrer = relationship("User", remote_side=[id], foreign_keys=[referred_by])

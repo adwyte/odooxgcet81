@@ -23,7 +23,7 @@ class Wallet(Base):
     __tablename__ = "wallets"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     balance = Column(Float, default=0.0, nullable=False)
     currency = Column(String, default="INR", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -32,14 +32,14 @@ class Wallet(Base):
 
     # Relationships
     user = relationship("User", back_populates="wallet")
-    transactions = relationship("WalletTransaction", back_populates="wallet", order_by="desc(WalletTransaction.created_at)")
+    transactions = relationship("WalletTransaction", back_populates="wallet", order_by="desc(WalletTransaction.created_at)", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class WalletTransaction(Base):
     __tablename__ = "wallet_transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"), nullable=False)
+    wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id", ondelete="CASCADE"), nullable=False)
     transaction_type = Column(Enum(TransactionType), nullable=False)
     amount = Column(Float, nullable=False)
     balance_before = Column(Float, nullable=False)

@@ -37,23 +37,23 @@ interface CreateUserFormData {
 
 const UsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
-  
+
   // State for users data
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [perPage] = useState(10);
-  
+
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
   const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | ''>('');
-  
+
   // UI state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -61,7 +61,7 @@ const UsersPage: React.FC = () => {
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  
+
   // Form state for new user
   const [newUserForm, setNewUserForm] = useState<CreateUserFormData>({
     first_name: '',
@@ -76,7 +76,7 @@ const UsersPage: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params: {
         page: number;
@@ -88,21 +88,21 @@ const UsersPage: React.FC = () => {
         page: currentPage,
         per_page: perPage,
       };
-      
+
       if (searchQuery) {
         params.search = searchQuery;
       }
-      
+
       if (roleFilter) {
         params.role = roleFilter;
       }
-      
+
       if (statusFilter === 'active') {
         params.is_active = true;
       } else if (statusFilter === 'inactive') {
         params.is_active = false;
       }
-      
+
       const response: PaginatedUsers = await adminApi.getUsers(params);
       setUsers(response.items);
       setTotalPages(response.total_pages);
@@ -146,13 +146,13 @@ const UsersPage: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError(null);
-    
+
     try {
       const userData = {
         ...newUserForm,
         company_name: newUserForm.role === 'VENDOR' ? newUserForm.company_name : undefined,
       };
-      
+
       await adminApi.createUser(userData);
       setShowAddModal(false);
       setNewUserForm({
@@ -198,7 +198,7 @@ const UsersPage: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       await adminApi.deleteUser(userId);
       fetchUsers();
@@ -346,8 +346,8 @@ const UsersPage: React.FC = () => {
                 {statusFilter === 'active'
                   ? 'Active'
                   : statusFilter === 'inactive'
-                  ? 'Inactive'
-                  : 'All Status'}
+                    ? 'Inactive'
+                    : 'All Status'}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-500" />
             </button>
@@ -378,7 +378,7 @@ const UsersPage: React.FC = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -417,126 +417,128 @@ const UsersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-indigo-600 font-medium">
-                            {user.first_name.charAt(0)}
-                            {user.last_name.charAt(0)}
-                          </span>
+                {users.map((user, index) => {
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span className="text-indigo-600 font-medium">
+                              {user.first_name.charAt(0)}
+                              {user.last_name.charAt(0)}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.first_name} {user.last_name}
+                            </div>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <Mail className="w-4 h-4 mr-1" />
+                              {user.email}
+                            </div>
+                            {user.company_name && (
+                              <div className="text-xs text-gray-400">
+                                {user.company_name}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.first_name} {user.last_name}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Mail className="w-4 h-4 mr-1" />
-                            {user.email}
-                          </div>
-                          {user.company_name && (
-                            <div className="text-xs text-gray-400">
-                              {user.company_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadge(
+                            user.role
+                          )}`}
+                        >
+                          <Shield className="w-3 h-3 mr-1" />
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+                            user.is_active
+                          )}`}
+                        >
+                          {user.is_active ? (
+                            <>
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <UserX className="w-3 h-3 mr-1" />
+                              Inactive
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(user.created_at), 'MMM d, yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="relative">
+                          <button
+                            onClick={() =>
+                              setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)
+                            }
+                            className="p-2 hover:bg-gray-100 rounded-lg"
+                          >
+                            <MoreVertical className="w-5 h-5 text-gray-500" />
+                          </button>
+                          {actionMenuOpen === user.id && (
+                            <div className={`absolute right-0 ${index >= users.length - 2 ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20`}>
+                              <button
+                                onClick={() => handleToggleStatus(user)}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                {user.is_active ? (
+                                  <>
+                                    <UserX className="w-4 h-4 text-red-500" />
+                                    <span>Deactivate</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-4 h-4 text-green-500" />
+                                    <span>Activate</span>
+                                  </>
+                                )}
+                              </button>
+                              <div className="border-t border-gray-100">
+                                <div className="px-4 py-2 text-xs text-gray-500 uppercase">
+                                  Change Role
+                                </div>
+                                {(['CUSTOMER', 'VENDOR', 'ADMIN'] as UserRole[]).map(
+                                  (role) =>
+                                    role !== user.role && (
+                                      <button
+                                        key={role}
+                                        onClick={() => handleChangeRole(user.id, role)}
+                                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <Edit2 className="w-4 h-4 text-gray-500" />
+                                        <span>Make {role}</span>
+                                      </button>
+                                    )
+                                )}
+                              </div>
+                              <div className="border-t border-gray-100">
+                                <button
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center gap-2 text-red-600"
+                                  disabled={user.id === currentUser?.id}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>Delete User</span>
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadge(
-                          user.role
-                        )}`}
-                      >
-                        <Shield className="w-3 h-3 mr-1" />
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
-                          user.is_active
-                        )}`}
-                      >
-                        {user.is_active ? (
-                          <>
-                            <UserCheck className="w-3 h-3 mr-1" />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <UserX className="w-3 h-3 mr-1" />
-                            Inactive
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(user.created_at), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)
-                          }
-                          className="p-2 hover:bg-gray-100 rounded-lg"
-                        >
-                          <MoreVertical className="w-5 h-5 text-gray-500" />
-                        </button>
-                        {actionMenuOpen === user.id && (
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                            <button
-                              onClick={() => handleToggleStatus(user)}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              {user.is_active ? (
-                                <>
-                                  <UserX className="w-4 h-4 text-red-500" />
-                                  <span>Deactivate</span>
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="w-4 h-4 text-green-500" />
-                                  <span>Activate</span>
-                                </>
-                              )}
-                            </button>
-                            <div className="border-t border-gray-100">
-                              <div className="px-4 py-2 text-xs text-gray-500 uppercase">
-                                Change Role
-                              </div>
-                              {(['CUSTOMER', 'VENDOR', 'ADMIN'] as UserRole[]).map(
-                                (role) =>
-                                  role !== user.role && (
-                                    <button
-                                      key={role}
-                                      onClick={() => handleChangeRole(user.id, role)}
-                                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
-                                    >
-                                      <Edit2 className="w-4 h-4 text-gray-500" />
-                                      <span>Make {role}</span>
-                                    </button>
-                                  )
-                              )}
-                            </div>
-                            <div className="border-t border-gray-100">
-                              <button
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center gap-2 text-red-600"
-                                disabled={user.id === currentUser?.id}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Delete User</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

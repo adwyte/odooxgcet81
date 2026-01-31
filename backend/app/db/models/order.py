@@ -41,8 +41,8 @@ class RentalOrder(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_number = Column(String, unique=True)
     quotation_id = Column(UUID(as_uuid=True), ForeignKey("quotations.id"), nullable=True)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
     
     subtotal = Column(Float, default=0)
