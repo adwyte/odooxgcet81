@@ -3,10 +3,12 @@ export type UserRole = 'customer' | 'vendor' | 'admin';
 
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  companyName: string;
-  gstin: string;
+  companyName?: string;
+  businessCategory?: string;
+  gstin?: string;
   role: UserRole;
   createdAt: string;
 }

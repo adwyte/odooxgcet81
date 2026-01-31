@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { 
-  Settings, 
   User, 
   Building2, 
   Lock, 
@@ -11,7 +10,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Clock,
   Package
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +22,8 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     email: user?.email || '',
     phone: '+91 98765 43210',
     avatar: '',
@@ -32,6 +31,7 @@ export default function SettingsPage() {
 
   const [companyData, setCompanyData] = useState({
     companyName: user?.companyName || '',
+    businessCategory: user?.businessCategory || '',
     gstin: user?.gstin || '',
     address: '123 Business Park, Mumbai',
     city: 'Mumbai',
@@ -126,7 +126,7 @@ export default function SettingsPage() {
                 <div className="relative">
                   <div className="w-24 h-24 bg-primary-200 rounded-full flex items-center justify-center">
                     <span className="text-3xl font-bold text-primary-700">
-                      {profileData.name.charAt(0)}
+                      {profileData.firstName.charAt(0)}
                     </span>
                   </div>
                   <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-800 transition-colors">
@@ -134,18 +134,27 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <div>
-                  <h3 className="font-medium text-primary-900">{profileData.name}</h3>
+                  <h3 className="font-medium text-primary-900">{profileData.firstName} {profileData.lastName}</h3>
                   <p className="text-sm text-primary-500 capitalize">{user?.role}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="label">Full Name</label>
+                  <label className="label">First Name</label>
                   <input
                     type="text"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    value={profileData.firstName}
+                    onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Last Name</label>
+                  <input
+                    type="text"
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
                     className="input"
                   />
                 </div>

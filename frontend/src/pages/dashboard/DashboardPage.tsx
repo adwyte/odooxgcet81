@@ -97,7 +97,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-primary-900">
-            Welcome back, {user?.name?.split(' ')[0]}!
+            Welcome back, {user?.firstName}!
           </h1>
           <p className="text-primary-500">
             Here's what's happening with your {user?.role === 'customer' ? 'rentals' : 'business'} today.

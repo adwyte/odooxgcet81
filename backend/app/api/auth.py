@@ -1,0 +1,286 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
+from app.db.session import SessionLocal
+from app.core.config import settings
+from app.schemas.auth import (
+    UserCreate, UserLogin, UserResponse, TokenResponse,
+    OTPRequest, OTPVerify, PasswordReset, TokenRefresh,
+    MessageResponse, OTPResponse
+)
+from app.services import auth_service
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@router.post("/register", response_model=TokenResponse)
+async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user"""
+    existing_user = auth_service.get_user_by_email(db, user_data.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    user = auth_service.create_user(db, user_data)
+    
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
+    )
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+    """Login with email and password"""
+    user = auth_service.authenticate_user(db, credentials.email, credentials.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
+        )
+    
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
+    """Refresh access token using refresh token"""
+    payload = auth_service.verify_token(token_data.refresh_token, token_type="refresh")
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+    
+    user = auth_service.get_user_by_id(db, payload.get("sub"))
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive"
+        )
+    
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
+    )
+
+
+# OTP-based Password Reset
+@router.post("/forgot-password", response_model=OTPResponse)
+async def forgot_password(request: OTPRequest, db: Session = Depends(get_db)):
+    """Send OTP to email for password reset"""
+    user = auth_service.get_user_by_email(db, request.email)
+    if not user:
+        # Don't reveal if email exists for security
+        return OTPResponse(
+            message="If the email exists, an OTP has been sent",
+            expires_in_minutes=settings.OTP_EXPIRE_MINUTES
+        )
+    
+    otp = auth_service.store_otp(request.email)
+    
+    # TODO: Send email with OTP in production
+    # For now, we'll log it (remove in production!)
+    print(f"[DEBUG] OTP for {request.email}: {otp}")
+    
+    return OTPResponse(
+        message="OTP sent to your email",
+        expires_in_minutes=settings.OTP_EXPIRE_MINUTES
+    )
+
+
+@router.post("/verify-otp", response_model=MessageResponse)
+async def verify_otp(request: OTPVerify):
+    """Verify OTP (used before reset password)"""
+    is_valid = auth_service.verify_otp(request.email, request.otp)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+    
+    # Store a temporary token for password reset
+    reset_token = auth_service.store_otp(request.email)  # Reuse OTP storage for reset token
+    
+    return MessageResponse(
+        message="OTP verified successfully",
+        success=True
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(request: PasswordReset, db: Session = Depends(get_db)):
+    """Reset password with OTP"""
+    is_valid = auth_service.verify_otp(request.email, request.otp)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+    
+    user = auth_service.get_user_by_email(db, request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    auth_service.update_user_password(db, user, request.new_password)
+    
+    return MessageResponse(
+        message="Password reset successfully",
+        success=True
+    )
+
+
+# OAuth Routes
+@router.get("/google")
+async def google_login():
+    """Redirect to Google OAuth"""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth is not configured"
+        )
+    auth_url = auth_service.get_google_oauth_url()
+    return RedirectResponse(url=auth_url)
+
+
+@router.get("/google/callback")
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback"""
+    try:
+        user_info = await auth_service.get_google_user_info(code)
+        email = user_info.get("email")
+        given_name = user_info.get("given_name", "")
+        family_name = user_info.get("family_name", "")
+        
+        # Fallback if names not provided
+        if not given_name:
+            full_name = user_info.get("name", email.split("@")[0])
+            name_parts = full_name.split(" ", 1)
+            given_name = name_parts[0]
+            family_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        user = auth_service.get_user_by_email(db, email)
+        if not user:
+            user = auth_service.create_oauth_user(db, email, given_name, family_name, "google")
+        
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
+        refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+        
+        # Redirect to frontend with tokens
+        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        return RedirectResponse(url=redirect_url)
+    
+    except Exception as e:
+        redirect_url = f"{settings.FRONTEND_URL}/login?error=oauth_failed"
+        return RedirectResponse(url=redirect_url)
+
+
+@router.get("/github")
+async def github_login():
+    """Redirect to GitHub OAuth"""
+    if not settings.GITHUB_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GitHub OAuth is not configured"
+        )
+    auth_url = auth_service.get_github_oauth_url()
+    return RedirectResponse(url=auth_url)
+
+
+@router.get("/github/callback")
+async def github_callback(code: str, db: Session = Depends(get_db)):
+    """Handle GitHub OAuth callback"""
+    try:
+        user_info = await auth_service.get_github_user_info(code)
+        email = user_info.get("email")
+        
+        if not email:
+            redirect_url = f"{settings.FRONTEND_URL}/login?error=no_email"
+            return RedirectResponse(url=redirect_url)
+        
+        # Parse name from GitHub
+        full_name = user_info.get("name") or user_info.get("login", email.split("@")[0])
+        name_parts = full_name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        user = auth_service.get_user_by_email(db, email)
+        if not user:
+            user = auth_service.create_oauth_user(db, email, first_name, last_name, "github")
+        
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
+        refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+        
+        # Redirect to frontend with tokens
+        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        return RedirectResponse(url=redirect_url)
+    
+    except Exception as e:
+        redirect_url = f"{settings.FRONTEND_URL}/login?error=oauth_failed"
+        return RedirectResponse(url=redirect_url)
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(
+    authorization: str = None,
+    db: Session = Depends(get_db)
+):
+    """Get current authenticated user"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    
+    token = authorization.split(" ")[1]
+    payload = auth_service.verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    
+    user = auth_service.get_user_by_id(db, payload.get("sub"))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return auth_service.user_to_response(user)
