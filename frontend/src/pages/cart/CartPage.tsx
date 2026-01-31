@@ -141,7 +141,7 @@ export default function CartPage() {
         <div className="lg:col-span-1">
           <div className="card p-6 sticky top-24">
             <h3 className="text-lg font-semibold text-primary-900 mb-4">Order Summary</h3>
-            
+
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-primary-600">Subtotal</span>
@@ -172,12 +172,36 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* Checkout Button */}
+            {/* Request Quote Button */}
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={async () => {
+                if (!confirm('Request a quotation for these items?')) return;
+                try {
+                  await import('../../api/quotations').then(({ quotationsApi }) =>
+                    quotationsApi.createQuotation({
+                      lines: items.map(item => ({
+                        product_id: item.product.id,
+                        quantity: item.rentalPeriod.quantity,
+                        rental_period: {
+                          type: item.rentalPeriod.type,
+                          start_date: item.rentalPeriod.startDate,
+                          end_date: item.rentalPeriod.endDate,
+                          quantity: item.rentalPeriod.quantity
+                        },
+                        unit_price: item.unitPrice,
+                        total_price: item.totalPrice
+                      }))
+                    })
+                  );
+                  clearCart();
+                  navigate('/quotations');
+                } catch (err) {
+                  alert('Failed to create quotation');
+                }
+              }}
               className="btn btn-primary w-full mt-6"
             >
-              Proceed to Checkout
+              Request Quote
               <ArrowRight size={18} />
             </button>
 

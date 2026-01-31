@@ -7,7 +7,7 @@ import uuid
 
 from app.db import get_db
 from app.db.models.invoice import Invoice, InvoiceLine, InvoiceStatus, Payment, PaymentMethod, PaymentStatus
-from app.db.models.order import RentalOrder
+from app.db.models.order import RentalOrder, OrderStatus
 from app.db.models.user import User, UserRole
 from app.services.auth_service import get_current_user
 
@@ -260,7 +260,45 @@ async def add_payment(
         payment_method = PaymentMethod(data.method.upper())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payment method")
-    
+
+    # Handle Wallet Payment
+    if payment_method == PaymentMethod.WALLET:
+        from app.db.models.wallet import Wallet, WalletTransaction, TransactionType, TransactionStatus
+        
+        # Get user's wallet
+        wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+        if not wallet:
+            # Create if not exists (though typically should exist)
+            wallet = Wallet(user_id=current_user.id, balance=0.0)
+            db.add(wallet)
+            db.flush()
+            
+        if not wallet.is_active:
+             raise HTTPException(status_code=400, detail="Wallet is inactive")
+             
+        if wallet.balance < data.amount:
+            raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+            
+        # Deduct from wallet
+        balance_before = wallet.balance
+        wallet.balance -= data.amount
+        
+        # Record transaction
+        wallet_txn = WalletTransaction(
+            wallet_id=wallet.id,
+            transaction_type=TransactionType.DEBIT,
+            amount=data.amount,
+            balance_before=balance_before,
+            balance_after=wallet.balance,
+            status=TransactionStatus.COMPLETED,
+            reference_type="INVOICE_PAYMENT",
+            reference_id=invoice.id,
+            description=f"Payment for Invoice #{invoice.invoice_number}"
+        )
+        db.add(wallet_txn)
+        # Use wallet txn ID as payment transaction ID
+        data.transaction_id = str(wallet_txn.id)
+
     payment = Payment(
         invoice_id=invoice.id,
         amount=data.amount,
@@ -279,6 +317,21 @@ async def add_payment(
         invoice.status = InvoiceStatus.PARTIAL
     
     db.commit()
+    
+    # Update linked order
+    if invoice.order_id:
+        order = db.query(RentalOrder).filter(RentalOrder.id == invoice.order_id).first()
+        if order:
+            order.paid_amount = (order.paid_amount or 0) + data.amount
+            
+            # If invoice is paid, confirm the order if it was pending
+            if invoice.status == InvoiceStatus.PAID and order.status == OrderStatus.PENDING:
+                order.status = OrderStatus.CONFIRMED
+            
+            db.add(order)
+            db.commit()
+            db.refresh(order)
+
     db.refresh(payment)
     
     return PaymentResponse(

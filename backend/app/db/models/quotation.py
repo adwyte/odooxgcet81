@@ -9,9 +9,13 @@ from app.db.base import Base
 
 class QuotationStatus(str, enum.Enum):
     DRAFT = "DRAFT"
-    SENT = "SENT"
-    CONFIRMED = "CONFIRMED"
-    CANCELLED = "CANCELLED"
+    SENT = "SENT" # Kept for backward compatibility
+    REQUESTED = "REQUESTED"
+    REVIEWED = "REVIEWED"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+    CONFIRMED = "CONFIRMED" # Kept for backward compatibility if needed, or alias to ACCEPTED
 
 
 class QuotationLine(Base):
@@ -38,6 +42,7 @@ class Quotation(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quotation_number = Column(String, unique=True)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     status = Column(Enum(QuotationStatus), default=QuotationStatus.DRAFT)
     
     subtotal = Column(Float, default=0)

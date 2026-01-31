@@ -14,6 +14,7 @@ interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<void>;
 }
 
+
 interface SignupData {
   firstName: string;
   lastName: string;
@@ -48,13 +49,15 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   country: apiUser.country,
   profilePhoto: apiUser.profile_photo,
   phoneNumber: apiUser.phone_number,
+  isCalendarConnected: apiUser.is_calendar_connected,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false,
+    isInitializing: true,
   });
 
   const saveTokens = (accessToken: string, refreshToken: string) => {
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isAuthenticated: true,
       isLoading: false,
+      isInitializing: false,
     });
   }, []);
 
@@ -120,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitializing: false,
     });
   }, []);
 
@@ -151,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: true,
         isLoading: false,
+        isInitializing: false,
       });
     } catch (error) {
       clearTokens();
@@ -190,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             isAuthenticated: true,
             isLoading: false,
+            isInitializing: false,
           });
           return;
         } catch (error) {
@@ -207,7 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, isLoading: false, isInitializing: false }));
     };
 
     initAuth();

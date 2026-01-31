@@ -1,4 +1,4 @@
-import { Menu, Bell, ShoppingCart, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, Bell, ShoppingCart, LogOut, User, ChevronDown, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -99,8 +99,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   onClick={() => setShowDropdown(false)}
                   className="flex items-center gap-3 px-4 py-2 text-sm text-primary-700 hover:bg-primary-50"
                 >
-                  <User size={16} />
-                  Profile Settings
+                  <Settings size={16} />
+                  Settings
                 </Link>
                 <button
                   onClick={() => {
@@ -117,6 +117,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
       </div>
-    </header>
+    </header >
   );
 }

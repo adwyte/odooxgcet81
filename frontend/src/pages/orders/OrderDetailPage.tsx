@@ -40,6 +40,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -330,11 +331,63 @@ export default function OrderDetailPage() {
                   View Invoice
                 </Link>
               )}
-              {user?.role === 'customer' && (order.paid_amount || 0) < (order.total_amount || 0) && (
-                <button className="btn btn-primary w-full">
+              {user?.role === 'customer' && ((order.total_amount || 0) - (order.paid_amount || 0) > 1) && (
+                <Link to={`/orders/${order.id}/pay`} className="btn btn-primary w-full text-center">
                   Pay Balance
-                </button>
+                </Link>
               )}
+              {/* Calendar Sync - Available for confirmed orders */}
+              {/* Client-side Calendar Links - No OAuth required */}
+              {order.status !== 'pending' && order.status !== 'cancelled' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const formatDate = (dateString: string) => {
+                        return new Date(dateString).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+                      };
+
+                      const openCalendar = (title: string, date: string, desc: string) => {
+                        const start = new Date(date);
+                        const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+                        const dates = `${formatDate(start.toISOString())}/${formatDate(end.toISOString())}`;
+                        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(desc)}`;
+                        window.open(url, '_blank');
+                      };
+
+                      // Pickup Event
+                      const pickupTime = order.pickup_date || order.rental_start_date;
+                      openCalendar(
+                        `Pickup: Rental #${order.order_number}`,
+                        pickupTime,
+                        `Pickup Order #${order.order_number}\nItems: ${order.lines?.length || 0}\nStatus: ${order.status}`
+                      );
+
+                      // Return Event
+                      // Small delay to ensure browser allows second popup or just rely on user clicking separately if needed.
+                      // Ideally, maybe show two buttons? Or just try both.
+                      // Let's try both with a subtle timeout, but browsers might block.
+                      // Better UX: Dropdown or just one button that tries both?
+                      // User asked for "prefilled eventr with that time slow", implying simple links.
+                      // Let's do two separate calls.
+                      setTimeout(() => {
+                        const returnTime = order.rental_end_date;
+                        openCalendar(
+                          `Return: Rental #${order.order_number}`,
+                          returnTime,
+                          `Return Due for Order #${order.order_number}`
+                        );
+                      }, 500);
+
+                      alert('Opening Google Calendar tabs for Pickup and Return events...');
+                    }}
+                    className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    <Calendar size={18} />
+                    Add to Calendar
+                  </button>
+                </div>
+              )}
+
               {(user?.role === 'vendor' || user?.role === 'admin') && (
                 <>
                   {order.status === 'pending' && (
@@ -352,6 +405,7 @@ export default function OrderDetailPage() {
                       </button>
                     </>
                   )}
+
                   {order.status === 'confirmed' && (
                     <>
                       <button
@@ -372,7 +426,7 @@ export default function OrderDetailPage() {
                   )}
                   {order.status === 'picked_up' && (
                     <button
-                      onClick={() => handleStatusChange('returned')}
+                      onClick={() => setIsReturnModalOpen(true)}
                       className="btn btn-primary w-full"
                     >
                       <RotateCcw size={18} />
@@ -487,6 +541,85 @@ export default function OrderDetailPage() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Schedule Pickup
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Order Modal */}
+      {isReturnModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-primary-900 mb-4">Confirm Return</h3>
+            <p className="text-primary-500 mb-6">
+              Mark items as returned. You can add late fees if applicable. The security deposit will be refunded automatically after deducting any fees.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const lateFeeInput = document.getElementById('late-fee') as HTMLInputElement;
+                const lateFee = lateFeeInput.value ? parseFloat(lateFeeInput.value) : 0;
+
+                const returnDateInput = document.getElementById('return-date') as HTMLInputElement;
+                const returnDate = returnDateInput.value ? new Date(returnDateInput.value).toISOString() : new Date().toISOString();
+
+                await ordersApi.updateOrder(order.id, {
+                  status: 'returned',
+                  late_return_fee: lateFee,
+                  return_date: returnDate
+                });
+
+                setIsReturnModalOpen(false);
+                // Refresh order
+                const updatedOrder = await ordersApi.getOrder(order.id);
+                setOrder(updatedOrder);
+                alert("Order marked as returned and completed!");
+              } catch (err: any) {
+                alert(err.message || "Failed to mark as returned");
+              }
+            }}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="label">Return Date</label>
+                  <input
+                    type="datetime-local"
+                    id="return-date"
+                    className="input"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Late Fee (Optional)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400">₹</span>
+                    <input
+                      type="number"
+                      id="late-fee"
+                      className="input pl-8"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <p className="text-xs text-primary-500 mt-1">
+                    Security Deposit: {formatPrice(order.security_deposit || 0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReturnModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Confirm Return & Refund
                 </button>
               </div>
             </form>

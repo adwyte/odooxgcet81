@@ -25,15 +25,19 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import ProductsPage from './pages/products/ProductsPage';
 import ProductDetailPage from './pages/products/ProductDetailPage';
 import NewProductPage from './pages/products/NewProductPage';
+import EditProductPage from './pages/products/EditProductPage';
 import CartPage from './pages/cart/CartPage';
 import CheckoutPage from './pages/cart/CheckoutPage';
 import QuotationsPage from './pages/quotations/QuotationsPage';
+import QuotationDetailPage from './pages/quotations/QuotationDetailPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
+import OrderPaymentPage from './pages/orders/OrderPaymentPage';
 import ReturnsPage from './pages/returns/ReturnsPage';
 import InvoicesPage from './pages/invoices/InvoicesPage';
 import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
-import ReportsPage from './pages/reports/ReportsPage';
+import CalendarCallbackPage from './pages/calendar/CalendarCallbackPage';
+import ProfilePage from './pages/profile/ProfilePage';
 import SettingsPage from './pages/settings/SettingsPage';
 import WalletPage from './pages/wallet/WalletPage';
 
@@ -72,15 +76,19 @@ export default function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/new" element={<NewProductPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/products/:id/edit" element={<EditProductPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/quotations" element={<QuotationsPage />} />
+              <Route path="/quotations/:id" element={<QuotationDetailPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
+              <Route path="/orders/:id/pay" element={<OrderPaymentPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/calendar/callback" element={<CalendarCallbackPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

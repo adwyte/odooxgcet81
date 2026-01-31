@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { CartItem, Product, ProductVariant, RentalPeriodSelection } from '../types';
 
 interface CartContextType {
@@ -20,9 +20,9 @@ function calculateRentalPrice(product: Product, variant: ProductVariant | undefi
   const diffHours = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
   const diffDays = Math.ceil(diffHours / 24);
   const diffWeeks = Math.ceil(diffDays / 7);
-  
+
   let basePrice = 0;
-  
+
   switch (rentalPeriod.type) {
     case 'hour':
       basePrice = (rentalPricing.hourly || 0) * diffHours;
@@ -40,27 +40,44 @@ function calculateRentalPrice(product: Product, variant: ProductVariant | undefi
       }
       break;
   }
-  
+
   // Add variant price modifier
   if (variant) {
     basePrice += variant.priceModifier;
   }
-  
+
   return basePrice * rentalPeriod.quantity;
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const savedItems = localStorage.getItem('cartItems');
+      return savedItems ? JSON.parse(savedItems) : [];
+    } catch (error) {
+      console.error('Failed to load cart from localStorage:', error);
+      return [];
+    }
+  });
+
+  // Persist to localStorage whenever items change
+  useEffect(() => {
+    try {
+      localStorage.setItem('cartItems', JSON.stringify(items));
+    } catch (error) {
+      console.error('Failed to save cart to localStorage:', error);
+    }
+  }, [items]);
 
   const addItem = useCallback((product: Product, variant: ProductVariant | undefined, rentalPeriod: RentalPeriodSelection) => {
     setItems(prev => {
       const existingIndex = prev.findIndex(
         item => item.product.id === product.id && item.variant?.id === variant?.id
       );
-      
+
       const totalPrice = calculateRentalPrice(product, variant, rentalPeriod);
       const unitPrice = totalPrice / rentalPeriod.quantity;
-      
+
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = {
@@ -71,7 +88,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         };
         return updated;
       }
-      
+
       return [...prev, {
         product,
         variant,
@@ -106,6 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
+    localStorage.removeItem('cartItems');
   }, []);
 
   const getTotal = useCallback(() => {

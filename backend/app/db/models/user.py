@@ -61,6 +61,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     profile_photo = Column(String, nullable=True)  # URL to profile photo
+    google_refresh_token = Column(String, nullable=True) # Google Calendar Refresh Token
     created_at = Column(DateTime, server_default=func.now())
     
     # Referral system

@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Download, 
-  Send, 
+import {
+  ArrowLeft,
+  Download,
+  Send,
   Printer,
   Calendar,
   Building2,
   Receipt,
   CreditCard,
   CheckCircle,
-  Loader2
+  Loader2,
+  Wallet
 } from 'lucide-react';
 import { invoicesApi } from '../../api/invoices';
+import { walletApi } from '../../api/wallet';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { InvoiceStatus } from '../../types';
@@ -29,26 +31,32 @@ export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [invoice, setInvoice] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchInvoice = async () => {
+    const fetchData = async () => {
       if (!id) return;
       try {
         setLoading(true);
-        const data = await invoicesApi.getInvoice(id);
-        setInvoice(data);
+        const [invoiceData, walletData] = await Promise.all([
+          invoicesApi.getInvoice(id),
+          walletApi.getWallet()
+        ]);
+        setInvoice(invoiceData);
+        setWalletBalance(walletData.balance);
       } catch (err: any) {
-        setError(err.message || 'Failed to load invoice');
+        setError(err.message || 'Failed to load details');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInvoice();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -85,11 +93,48 @@ export default function InvoiceDetailPage() {
     alert('Redirecting to payment gateway...');
   };
 
+  const handleWalletPay = async () => {
+    if (!invoice) return;
+
+    const amountToPay = (invoice.total_amount || 0) - (invoice.paid_amount || 0);
+
+    if (walletBalance < amountToPay) {
+      alert('Insufficient wallet balance!');
+      return;
+    }
+
+    if (!confirm(`Pay ${formatPrice(amountToPay)} using your wallet balance?`)) {
+      return;
+    }
+
+    try {
+      setPaying(true);
+      await invoicesApi.addPayment(invoice.id, {
+        amount: amountToPay,
+        method: 'WALLET',
+      });
+
+      // Refresh data
+      const [invoiceData, walletData] = await Promise.all([
+        invoicesApi.getInvoice(invoice.id),
+        walletApi.getWallet()
+      ]);
+      setInvoice(invoiceData);
+      setWalletBalance(walletData.balance);
+
+      alert('Payment successful!');
+    } catch (err: any) {
+      alert(err.message || 'Payment failed');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 hover:bg-primary-100 rounded-lg transition-colors"
         >
@@ -224,14 +269,31 @@ export default function InvoiceDetailPage() {
                   Send to Customer
                 </button>
               )}
-              {user?.role === 'customer' && invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
-                <button 
-                  onClick={handlePayNow}
-                  className="btn btn-primary w-full"
-                >
-                  <CreditCard size={18} />
-                  Pay Now {(invoice.paid_amount || 0) > 0 ? formatPrice((invoice.total_amount || 0) - (invoice.paid_amount || 0)) : ''}
-                </button>
+              {user?.role === 'customer' && invoice.status !== 'cancelled' && ((invoice.total_amount || 0) - (invoice.paid_amount || 0) > 1) && (
+                <div className="space-y-3">
+                  <button
+                    onClick={handleWalletPay}
+                    disabled={paying || walletBalance < ((invoice.total_amount || 0) - (invoice.paid_amount || 0))}
+                    className={`btn w-full flex-col items-start p-4 ${walletBalance >= ((invoice.total_amount || 0) - (invoice.paid_amount || 0))
+                      ? 'bg-primary-900 text-white hover:bg-primary-800'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wallet size={18} />
+                      <span className="font-medium">Pay with Wallet</span>
+                    </div>
+                    <span className="text-xs opacity-80">Balance: {formatPrice(walletBalance)}</span>
+                  </button>
+
+                  <button
+                    onClick={handlePayNow}
+                    className="btn btn-outline w-full"
+                  >
+                    <CreditCard size={18} />
+                    Pay Online
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -256,11 +318,11 @@ export default function InvoiceDetailPage() {
                   </span>
                 </div>
               )}
-              
+
               {/* Progress Bar */}
               <div className="mt-2">
                 <div className="w-full bg-primary-100 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${((invoice.paid_amount || 0) / (invoice.total_amount || 1)) * 100}%` }}
                   />

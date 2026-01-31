@@ -20,12 +20,14 @@ export interface User {
   country?: string;
   profilePhoto?: string;
   phoneNumber?: string;
+  isCalendarConnected?: boolean;
 }
 
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
 }
 
 // Product Types
@@ -78,7 +80,7 @@ export interface Product {
 }
 
 // Quotation & Order Types
-export type QuotationStatus = 'draft' | 'sent' | 'confirmed' | 'cancelled';
+export type QuotationStatus = 'draft' | 'sent' | 'requested' | 'reviewed' | 'accepted' | 'rejected' | 'expired' | 'confirmed' | 'cancelled';
 export type OrderStatus = 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'completed' | 'cancelled';
 
 export interface RentalPeriodSelection {
@@ -178,7 +180,7 @@ export interface Invoice {
 }
 
 // Payment Types
-export type PaymentMethod = 'online' | 'card' | 'bank_transfer' | 'cash';
+export type PaymentMethod = 'online' | 'card' | 'bank_transfer' | 'cash' | 'wallet';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface Payment {

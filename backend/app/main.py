@@ -10,6 +10,7 @@ from app.api.quotations import router as quotations_router
 from app.api.invoices import router as invoices_router
 from app.api.dashboard import router as dashboard_router
 from app.api.wallet import router as wallet_router
+from app.api.calendar import router as calendar_router
 
 app = FastAPI(
     title="Odoo x GCET - Rental Management",
@@ -39,6 +40,7 @@ app.include_router(quotations_router, prefix="/api")
 app.include_router(invoices_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(wallet_router, prefix="/api")
+app.include_router(calendar_router)
 
 @app.get("/")
 async def root():
