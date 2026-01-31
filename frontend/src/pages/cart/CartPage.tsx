@@ -183,7 +183,7 @@ export default function CartPage() {
 
             {/* Security Note */}
             <p className="text-xs text-primary-500 text-center mt-4">
-              🔒 Secure checkout powered by RentFlow
+              🔒 Secure checkout powered by RentPe
             </p>
           </div>
         </div>

@@ -61,9 +61,9 @@ export default function AdminSettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
-    siteName: 'RentFlow',
-    siteUrl: 'https://rentflow.com',
-    supportEmail: 'support@rentflow.com',
+    siteName: 'RentPe',
+    siteUrl: 'https://rentpe.com',
+    supportEmail: 'support@rentpe.com',
     supportPhone: '+91 98765 43210',
     defaultCurrency: 'INR',
     dateFormat: 'DD/MM/YYYY',

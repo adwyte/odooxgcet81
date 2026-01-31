@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    EMAIL_FROM: str = "noreply@rentflow.com"
+    EMAIL_FROM: str = "noreply@rentpe.com"
     
     # OTP Settings
     OTP_EXPIRE_MINUTES: int = 10

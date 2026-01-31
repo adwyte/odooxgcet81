@@ -17,7 +17,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">1. Acceptance of Terms</h2>
             <p className="text-primary-700 leading-relaxed">
-              By accessing or using RentFlow's services, you agree to be bound by these Terms of Service. 
+              By accessing or using RentPe's services, you agree to be bound by these Terms of Service.
               If you do not agree to these terms, please do not use our platform. These terms apply to all 
               users of the platform, including customers and vendors.
             </p>
@@ -26,7 +26,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">2. Description of Service</h2>
             <p className="text-primary-700 leading-relaxed">
-              RentFlow is an online marketplace that connects equipment vendors with customers seeking to 
+              RentPe is an online marketplace that connects equipment vendors with customers seeking to 
               rent equipment. We facilitate transactions between vendors and customers but are not a party 
               to any rental agreement between them.
             </p>
@@ -64,7 +64,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">5. Rental Transactions</h2>
             <p className="text-primary-700 leading-relaxed">
-              All rental transactions are between the vendor and the customer. RentFlow acts solely as an 
+              All rental transactions are between the vendor and the customer. RentPe acts solely as an 
               intermediary platform. Users are responsible for ensuring they comply with all applicable laws 
               and regulations regarding equipment rental in their jurisdiction.
             </p>
@@ -73,7 +73,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">6. Payments and Fees</h2>
             <p className="text-primary-700 leading-relaxed">
-              RentFlow may charge service fees for facilitating transactions. All fees will be clearly 
+              RentPe may charge service fees for facilitating transactions. All fees will be clearly 
               disclosed before any transaction is completed. Payment processing is handled by secure 
               third-party payment providers.
             </p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">7. Limitation of Liability</h2>
             <p className="text-primary-700 leading-relaxed">
-              RentFlow is not liable for any damages arising from your use of the platform, including but 
+              RentPe is not liable for any damages arising from your use of the platform, including but 
               not limited to direct, indirect, incidental, punitive, and consequential damages. We do not 
               guarantee the quality, safety, or legality of items listed on the platform.
             </p>
@@ -91,8 +91,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">8. Intellectual Property</h2>
             <p className="text-primary-700 leading-relaxed">
-              All content on the RentFlow platform, including logos, text, graphics, and software, is the 
-              property of RentFlow or its licensors and is protected by intellectual property laws.
+              All content on the RentPe platform, including logos, text, graphics, and software, is the 
+              property of RentPe or its licensors and is protected by intellectual property laws.
             </p>
           </section>
 
@@ -120,7 +120,7 @@ export default function TermsPage() {
               If you have any questions about these Terms of Service, please contact us at:
             </p>
             <p className="text-primary-700 mt-2">
-              Email: <a href="mailto:legal@rentflow.com" className="text-primary-900 hover:underline">legal@rentflow.com</a>
+              Email: <a href="mailto:legal@RentPe.com" className="text-primary-900 hover:underline">legal@RentPe.com</a>
             </p>
           </section>
         </div>

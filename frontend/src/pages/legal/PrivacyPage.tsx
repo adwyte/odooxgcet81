@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">1. Introduction</h2>
             <p className="text-primary-700 leading-relaxed">
-              At RentFlow, we take your privacy seriously. This Privacy Policy explains how we collect, 
+              At RentPe, we take your privacy seriously. This Privacy Policy explains how we collect,
               use, disclose, and safeguard your information when you use our platform. Please read this 
               policy carefully to understand our practices regarding your personal data.
             </p>
@@ -147,7 +147,7 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
             <p className="text-primary-700 mt-2">
-              Email: <a href="mailto:privacy@rentflow.com" className="text-primary-900 hover:underline">privacy@rentflow.com</a>
+              Email: <a href="mailto:privacy@rentpe.com" className="text-primary-900 hover:underline">privacy@rentpe.com</a>
             </p>
           </section>
         </div>

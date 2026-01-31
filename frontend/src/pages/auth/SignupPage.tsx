@@ -6,7 +6,7 @@ export default function SignupPage() {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary-900">Create an account</h2>
-        <p className="text-primary-500 mt-1">Choose how you want to use RentFlow</p>
+        <p className="text-primary-500 mt-1">Choose how you want to use RentPe</p>
       </div>
 
       <div className="space-y-4">

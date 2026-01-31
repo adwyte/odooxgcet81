@@ -116,7 +116,7 @@ export default function InvoiceDetailPage() {
                 <p className="text-primary-500">{invoice.invoice_number}</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-primary-900">RentFlow</p>
+                <p className="font-bold text-primary-900">RentPe</p>
                 <p className="text-sm text-primary-500">123 Business Park</p>
                 <p className="text-sm text-primary-500">Mumbai, MH 400001</p>
                 <p className="text-sm text-primary-500">GSTIN: 27AABCU9603R1ZM</p>

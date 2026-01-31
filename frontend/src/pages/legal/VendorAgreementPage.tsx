@@ -17,7 +17,7 @@ export default function VendorAgreementPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">1. Vendor Eligibility</h2>
             <p className="text-primary-700 leading-relaxed mb-3">
-              To become a vendor on RentFlow, you must:
+              To become a vendor on RentPe, you must:
             </p>
             <ul className="list-disc pl-6 text-primary-700 space-y-2">
               <li>Be at least 18 years of age</li>
@@ -61,7 +61,7 @@ export default function VendorAgreementPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">4. Fees and Payments</h2>
             <p className="text-primary-700 leading-relaxed mb-3">
-              RentFlow charges the following fees:
+              RentPe charges the following fees:
             </p>
             <ul className="list-disc pl-6 text-primary-700 space-y-2">
               <li>Platform fee: 10% of each successful rental transaction</li>
@@ -92,7 +92,7 @@ export default function VendorAgreementPage() {
             <h2 className="text-xl font-semibold text-primary-900 mb-3">6. Insurance and Liability</h2>
             <p className="text-primary-700 leading-relaxed">
               Vendors are responsible for maintaining appropriate insurance coverage for their rental 
-              equipment. RentFlow provides limited protection against damage during rentals, but vendors 
+              equipment. RentPe provides limited protection against damage during rentals, but vendors 
               should have their own insurance policies to cover equipment damage, theft, or liability claims.
             </p>
           </section>
@@ -112,7 +112,7 @@ export default function VendorAgreementPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">8. Prohibited Items</h2>
             <p className="text-primary-700 leading-relaxed mb-3">
-              The following items cannot be listed on RentFlow:
+              The following items cannot be listed on RentPe:
             </p>
             <ul className="list-disc pl-6 text-primary-700 space-y-2">
               <li>Weapons or items designed to cause harm</li>
@@ -127,7 +127,7 @@ export default function VendorAgreementPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">9. Account Suspension</h2>
             <p className="text-primary-700 leading-relaxed">
-              RentFlow reserves the right to suspend or terminate vendor accounts for violations of this 
+              RentPe reserves the right to suspend or terminate vendor accounts for violations of this 
               agreement, including but not limited to: fraudulent activity, repeated customer complaints, 
               listing prohibited items, or failure to fulfill rental obligations.
             </p>
@@ -136,9 +136,9 @@ export default function VendorAgreementPage() {
           <section>
             <h2 className="text-xl font-semibold text-primary-900 mb-3">10. Dispute Resolution</h2>
             <p className="text-primary-700 leading-relaxed">
-              In case of disputes between vendors and customers, RentFlow will act as a mediator and make 
+              In case of disputes between vendors and customers, RentPe will act as a mediator and make 
               reasonable efforts to resolve the issue fairly. Both parties agree to cooperate with the 
-              dispute resolution process and accept RentFlow's final decision.
+              dispute resolution process and accept RentPe's final decision.
             </p>
           </section>
 
@@ -148,7 +148,7 @@ export default function VendorAgreementPage() {
               For vendor support and inquiries, please contact us at:
             </p>
             <p className="text-primary-700 mt-2">
-              Email: <a href="mailto:vendors@rentflow.com" className="text-primary-900 hover:underline">vendors@rentflow.com</a>
+              Email: <a href="mailto:vendors@RentPe.com" className="text-primary-900 hover:underline">vendors@RentPe.com</a>
             </p>
           </section>
         </div>

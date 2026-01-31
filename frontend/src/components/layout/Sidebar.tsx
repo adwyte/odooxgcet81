@@ -16,6 +16,7 @@ import {
   FolderTree,
   Cog
 } from 'lucide-react';
+import logo from "../../assets/logo.png";
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -96,11 +97,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-primary-200">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-                <Package size={18} className="text-white" />
-              </div>
-              <span className="text-xl font-bold text-primary-900">RentFlow</span>
+            <Link to="/dashboard" className="flex items-center gap-3">
+              <img
+                src={logo}
+                alt="RentPe"
+                className="h-8 w-8 object-contain"
+              />
+              <span className="text-xl font-bold text-primary-900">RentPe</span>
             </Link>
             <button 
               onClick={onClose}

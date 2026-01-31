@@ -1,5 +1,6 @@
 import { Outlet, Navigate, Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
+import logo from "../../assets/logo.png";
 import { useAuth } from '../../context/AuthContext';
 
 export default function AuthLayout() {
@@ -23,10 +24,12 @@ export default function AuthLayout() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary-900 p-12 flex-col justify-between">
         <div>
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-              <Package size={24} className="text-primary-900" />
-            </div>
-            <span className="text-2xl font-bold text-white">RentFlow</span>
+            <img
+              src={logo}
+              alt="RentPe"
+              className="h-8 w-8 object-contain rounded-lg"
+            />
+            <span className="text-2xl font-bold text-white">RentPe</span>
           </Link>
         </div>
         
@@ -60,7 +63,7 @@ export default function AuthLayout() {
         </div>
 
         <p className="text-sm text-primary-400">
-          © 2024 RentFlow. All rights reserved.
+          © 2024 RentPe. All rights reserved.
         </p>
       </div>
 
@@ -69,14 +72,15 @@ export default function AuthLayout() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
-            <Link to="/" className="inline-flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-900 rounded-xl flex items-center justify-center">
-                <Package size={24} className="text-white" />
-              </div>
-              <span className="text-2xl font-bold text-primary-900">RentFlow</span>
+            <Link to="/" className="inline-flex items-center gap-3 justify-center">
+              <img
+                src={logo}
+                alt="RentPe"
+                className="h-10 w-10 object-contain"
+              />
+              <span className="text-2xl font-bold text-primary-900">RentPe</span>
             </Link>
           </div>
-          
           <Outlet />
         </div>
       </div>

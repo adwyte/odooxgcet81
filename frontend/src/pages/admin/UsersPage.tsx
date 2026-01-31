@@ -59,7 +59,7 @@ const mockUsersList: MockUser[] = [
     email: 'admin@example.com',
     phone: '+91 98765 43212',
     role: 'admin',
-    companyName: 'RentFlow',
+    companyName: 'RentPe',
     status: 'active',
     createdAt: '2024-01-01',
     lastLogin: '2024-01-30',
