@@ -39,9 +39,16 @@ class QuotationCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class QuotationLineUpdate(BaseModel):
+    id: str
+    unit_price: float
+    total_price: float
+
+
 class QuotationUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
+    lines: Optional[List[QuotationLineUpdate]] = None
 
 
 class QuotationLineResponse(BaseModel):
@@ -182,7 +189,7 @@ async def create_quotation(
     quotation = Quotation(
         quotation_number=generate_quotation_number(),
         customer_id=current_user.id,
-        status=QuotationStatus.DRAFT,
+        status=QuotationStatus.REQUESTED,
         subtotal=subtotal,
         tax_rate=tax_rate,
         tax_amount=tax_amount,
@@ -238,6 +245,20 @@ async def update_quotation(
     
     if data.notes is not None:
         quotation.notes = data.notes
+        
+    # Handle Line Updates (Price changes by Vendor/Admin)
+    if data.lines and (current_user.role == UserRole.VENDOR or current_user.role == UserRole.ADMIN):
+        for line_update in data.lines:
+             line = next((l for l in quotation.lines if str(l.id) == line_update.id), None)
+             if line:
+                 line.unit_price = line_update.unit_price
+                 line.total_price = line_update.total_price
+        
+        # Recalculate Totals
+        subtotal = sum(line.total_price for line in quotation.lines)
+        quotation.subtotal = subtotal
+        quotation.tax_amount = subtotal * (quotation.tax_rate / 100)
+        quotation.total_amount = subtotal + quotation.tax_amount
     
     db.commit()
     db.refresh(quotation)

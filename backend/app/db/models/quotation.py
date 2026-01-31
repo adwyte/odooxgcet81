@@ -9,9 +9,13 @@ from app.db.base import Base
 
 class QuotationStatus(str, enum.Enum):
     DRAFT = "DRAFT"
-    SENT = "SENT"
-    CONFIRMED = "CONFIRMED"
-    CANCELLED = "CANCELLED"
+    SENT = "SENT" # Kept for backward compatibility
+    REQUESTED = "REQUESTED"
+    REVIEWED = "REVIEWED"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+    CONFIRMED = "CONFIRMED" # Kept for backward compatibility if needed, or alias to ACCEPTED
 
 
 class QuotationLine(Base):

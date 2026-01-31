@@ -106,7 +106,11 @@ class QuotationsApi {
     return this.handleResponse<Quotation>(response);
   }
 
-  async updateQuotation(id: string, data: { status?: string; notes?: string }): Promise<Quotation> {
+  async updateQuotation(id: string, data: {
+    status?: string;
+    notes?: string;
+    lines?: { id: string; unit_price: number; total_price: number }[];
+  }): Promise<Quotation> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: this.getHeaders(),
