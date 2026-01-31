@@ -337,30 +337,55 @@ export default function OrderDetailPage() {
                 </Link>
               )}
               {/* Calendar Sync - Available for confirmed orders */}
+              {/* Client-side Calendar Links - No OAuth required */}
               {order.status !== 'pending' && order.status !== 'cancelled' && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const result = await import('../../api/calendar').then(({ calendarApi }) =>
-                        calendarApi.syncOrder(order.id)
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const formatDate = (dateString: string) => {
+                        return new Date(dateString).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+                      };
+
+                      const openCalendar = (title: string, date: string, desc: string) => {
+                        const start = new Date(date);
+                        const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+                        const dates = `${formatDate(start.toISOString())}/${formatDate(end.toISOString())}`;
+                        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(desc)}`;
+                        window.open(url, '_blank');
+                      };
+
+                      // Pickup Event
+                      const pickupTime = order.pickup_date || order.rental_start_date;
+                      openCalendar(
+                        `Pickup: Rental #${order.order_number}`,
+                        pickupTime,
+                        `Pickup Order #${order.order_number}\nItems: ${order.lines?.length || 0}\nStatus: ${order.status}`
                       );
 
-                      if (result.links && result.links.length > 0) {
-                        alert(`Events created! Opening separate tabs for Pickup and Return events.`);
-                        result.links.forEach(link => window.open(link, '_blank'));
-                      } else if (result.link) {
-                        alert(`Event created! View here: ${result.link}`);
-                        window.open(result.link, '_blank');
-                      }
-                    } catch (err: any) {
-                      alert(err.message || 'Failed to sync to calendar. Make sure you connected your Google Calendar in Profile.');
-                    }
-                  }}
-                  className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  <Calendar size={18} />
-                  Add to Google Calendar
-                </button>
+                      // Return Event
+                      // Small delay to ensure browser allows second popup or just rely on user clicking separately if needed.
+                      // Ideally, maybe show two buttons? Or just try both.
+                      // Let's try both with a subtle timeout, but browsers might block.
+                      // Better UX: Dropdown or just one button that tries both?
+                      // User asked for "prefilled eventr with that time slow", implying simple links.
+                      // Let's do two separate calls.
+                      setTimeout(() => {
+                        const returnTime = order.rental_end_date;
+                        openCalendar(
+                          `Return: Rental #${order.order_number}`,
+                          returnTime,
+                          `Return Due for Order #${order.order_number}`
+                        );
+                      }, 500);
+
+                      alert('Opening Google Calendar tabs for Pickup and Return events...');
+                    }}
+                    className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    <Calendar size={18} />
+                    Add to Calendar
+                  </button>
+                </div>
               )}
 
               {(user?.role === 'vendor' || user?.role === 'admin') && (

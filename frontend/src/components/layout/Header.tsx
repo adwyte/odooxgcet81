@@ -94,13 +94,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <p className="text-sm font-medium text-primary-900">{user?.firstName} {user?.lastName}</p>
                   <p className="text-xs text-primary-500">{user?.email}</p>
                 </div>
-                <Link
                   to="/settings"
                   onClick={() => setShowDropdown(false)}
                   className="flex items-center gap-3 px-4 py-2 text-sm text-primary-700 hover:bg-primary-50"
                 >
-                  <User size={16} />
-                  Profile Settings
+                  <Settings size={16} />
+                  Settings
                 </Link>
                 <button
                   onClick={() => {
@@ -114,9 +113,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </button>
               </div>
             )}
-          </div>
         </div>
       </div>
-    </header>
+    </div>
+    </header >
   );
 }
