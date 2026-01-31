@@ -11,17 +11,38 @@ export interface TokenResponse {
   user: UserResponse;
 }
 
+// Request interfaces
+export interface UserUpdateData {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  company_name?: string;
+  business_category?: string;
+  gstin?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+}
+
 export interface UserResponse {
   id: string;
   first_name: string;
   last_name: string;
   email: string;
-  role: 'ADMIN' | 'VENDOR' | 'CUSTOMER';
+  phone?: string;
+  role: string;
   company_name?: string;
   business_category?: string;
   gstin?: string;
   is_active: boolean;
   referral_code?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
   profile_photo?: string;
 }
 
@@ -35,7 +56,7 @@ export interface MessageResponse {
   success: boolean;
 }
 
-export interface ReferralCodeValidation {
+export interface ReferralValidationResponse {
   valid: boolean;
   message: string;
 }
@@ -59,6 +80,7 @@ class AuthApi {
     first_name: string;
     last_name: string;
     email: string;
+    phone: string;
     password: string;
     company_name?: string;
     business_category?: string;
@@ -132,9 +154,25 @@ class AuthApi {
     return `${this.baseUrl}/google`;
   }
 
-  async validateReferralCode(code: string): Promise<ReferralCodeValidation> {
+  async validateReferralCode(code: string): Promise<ReferralValidationResponse> {
     const response = await fetch(`${this.baseUrl}/validate-referral/${code}`);
-    return this.handleResponse<ReferralCodeValidation>(response);
+    return this.handleResponse<ReferralValidationResponse>(response);
+  }
+
+  async updateProfile(data: UserUpdateData): Promise<UserResponse> {
+    // Get token from storage - handled manually here since we don't have interceptors
+    const token = localStorage.getItem('access_token');
+    if (!token) throw new Error('No access token found');
+
+    const response = await fetch(`${this.baseUrl}/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse<UserResponse>(response);
   }
 }
 

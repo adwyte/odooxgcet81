@@ -12,7 +12,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
 from app.db.models.user import User, UserRole, generate_referral_code
-from app.schemas.auth import UserCreate, UserResponse
+from app.schemas.auth import UserCreate, UserResponse, UserUpdate
 
 # Referral bonus amounts
 REFERRAL_BONUS_NEW_USER = 500.0  # New user gets ₹500
@@ -169,6 +169,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         email=user_data.email,
+        phone=user_data.phone,
         password_hash=hashed_password,
         role=db_role,
         company_name=user_data.company_name,
@@ -233,6 +234,18 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 
 def update_user_password(db: Session, user: User, new_password: str) -> User:
     user.password_hash = get_password_hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_profile(db: Session, user: User, data: UserUpdate) -> User:
+    """Update user profile fields"""
+    update_data = data.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(user, key, value)
+            
     db.commit()
     db.refresh(user)
     return user
@@ -313,10 +326,18 @@ def user_to_response(user: User) -> UserResponse:
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
+        phone=user.phone,
         role=user.role,
         company_name=user.company_name,
         business_category=user.business_category,
         gstin=user.gstin,
+        # Address info
+        address=user.address,
+        city=user.city,
+        state=user.state,
+        postal_code=user.postal_code,
+        country=user.country,
+        
         is_active=user.is_active,
         referral_code=user.referral_code,
         profile_photo=user.profile_photo

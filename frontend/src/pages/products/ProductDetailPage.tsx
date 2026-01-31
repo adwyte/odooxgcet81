@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Clock, 
-  Calendar, 
-  CalendarDays, 
-  ShoppingCart, 
-  Plus, 
+import {
+  ArrowLeft,
+  Clock,
+  Calendar,
+  CalendarDays,
+  ShoppingCart,
+  Plus,
   Minus,
   Check,
   AlertCircle,
@@ -14,6 +14,8 @@ import {
   Package,
   Loader2
 } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 import { productsApi, Product } from '../../api/products';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
@@ -23,7 +25,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const { addItem } = useCart();
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,66 @@ export default function ProductDetailPage() {
   const [endDate, setEndDate] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showAddedMessage, setShowAddedMessage] = useState(false);
+
+  // New state for split date/time inputs using Date objects for DatePicker
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
+
+  // Helper to combine date and time
+  const combineDateTime = (date: Date | null, time: Date | null): string => {
+    if (!date || !time) return '';
+    const d = new Date(date);
+    d.setHours(time.getHours());
+    d.setMinutes(time.getMinutes());
+    return d.toISOString();
+  };
+
+  // Helper to format date to ISO string (start/end of day)
+  const formatDateISO = (date: Date | null, endOfDay = false): string => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (endOfDay) {
+      d.setHours(23, 59, 59, 999);
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    return d.toISOString(); // Or keep simplified string if backend prefers
+  };
+
+  // Update effect to calculate startDate and endDate for cart/calculations
+  useEffect(() => {
+    if (rentalType === 'hour') {
+      if (selectedDate && startTime && endTime) {
+        // For hourly, we need the specific time on the selected date
+        // Note: startTime/endTime from DatePicker just hold the time part on *some* date
+        // We need to merge it with selectedDate
+        const start = new Date(selectedDate);
+        start.setHours(startTime.getHours(), startTime.getMinutes());
+
+        const end = new Date(selectedDate);
+        end.setHours(endTime.getHours(), endTime.getMinutes());
+
+        // Handle case where end time is next day (not supported in single date picker yet, assume same day)
+        setStartDate(start.toISOString());
+        setEndDate(end.toISOString());
+      } else {
+        setStartDate('');
+        setEndDate('');
+      }
+    } else {
+      // Daily/Weekly
+      if (dateRangeStart && dateRangeEnd) {
+        setStartDate(formatDateISO(dateRangeStart));
+        setEndDate(formatDateISO(dateRangeEnd, true));
+      } else {
+        setStartDate('');
+        setEndDate('');
+      }
+    }
+  }, [rentalType, selectedDate, startTime, endTime, dateRangeStart, dateRangeEnd]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -47,7 +109,7 @@ export default function ProductDetailPage() {
         setLoading(false);
       }
     };
-    
+
     fetchProduct();
   }, [id]);
 
@@ -91,16 +153,16 @@ export default function ProductDetailPage() {
 
   const calculateTotal = () => {
     if (!startDate || !endDate) return 0;
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffMs = end.getTime() - start.getTime();
     const diffHours = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
     const diffDays = Math.max(1, Math.ceil(diffHours / 24));
     const diffWeeks = Math.max(1, Math.ceil(diffDays / 7));
-    
+
     let basePrice = 0;
-    
+
     switch (rentalType) {
       case 'hour':
         basePrice = (rentalPricing.hourly || 0) * diffHours;
@@ -112,24 +174,24 @@ export default function ProductDetailPage() {
         basePrice = (rentalPricing.weekly || 0) * diffWeeks;
         break;
     }
-    
+
     if (selectedVariant) {
       basePrice += (selectedVariant.priceModifier || 0) * (rentalType === 'day' ? diffDays : rentalType === 'week' ? diffWeeks : diffHours);
     }
-    
+
     return basePrice * quantity;
   };
 
   const handleAddToCart = () => {
     if (!startDate || !endDate || user?.role !== 'customer') return;
-    
+
     const rentalPeriod: RentalPeriodSelection = {
       type: rentalType,
       startDate,
       endDate,
       quantity,
     };
-    
+
     // Convert product to cart-compatible format
     const cartProduct = {
       ...product,
@@ -137,7 +199,7 @@ export default function ProductDetailPage() {
       availableQuantity,
       images,
     };
-    
+
     addItem(cartProduct as any, selectedVariant || undefined, rentalPeriod);
     setShowAddedMessage(true);
     setTimeout(() => setShowAddedMessage(false), 3000);
@@ -164,7 +226,7 @@ export default function ProductDetailPage() {
               className="w-full h-full object-cover"
             />
           </div>
-          
+
           {/* Thumbnails */}
           {images.length > 1 && (
             <div className="flex gap-2">
@@ -226,11 +288,10 @@ export default function ProductDetailPage() {
               {rentalPricing.hourly && (
                 <button
                   onClick={() => setRentalType('hour')}
-                  className={`p-3 rounded-lg border-2 transition-colors ${
-                    rentalType === 'hour'
-                      ? 'border-primary-900 bg-primary-50'
-                      : 'border-primary-200 hover:border-primary-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-colors ${rentalType === 'hour'
+                    ? 'border-primary-900 bg-primary-50'
+                    : 'border-primary-200 hover:border-primary-300'
+                    }`}
                 >
                   <Clock size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Hourly</p>
@@ -240,11 +301,10 @@ export default function ProductDetailPage() {
               {rentalPricing.daily && (
                 <button
                   onClick={() => setRentalType('day')}
-                  className={`p-3 rounded-lg border-2 transition-colors ${
-                    rentalType === 'day'
-                      ? 'border-primary-900 bg-primary-50'
-                      : 'border-primary-200 hover:border-primary-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-colors ${rentalType === 'day'
+                    ? 'border-primary-900 bg-primary-50'
+                    : 'border-primary-200 hover:border-primary-300'
+                    }`}
                 >
                   <Calendar size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Daily</p>
@@ -254,11 +314,10 @@ export default function ProductDetailPage() {
               {rentalPricing.weekly && (
                 <button
                   onClick={() => setRentalType('week')}
-                  className={`p-3 rounded-lg border-2 transition-colors ${
-                    rentalType === 'week'
-                      ? 'border-primary-900 bg-primary-50'
-                      : 'border-primary-200 hover:border-primary-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-colors ${rentalType === 'week'
+                    ? 'border-primary-900 bg-primary-50'
+                    : 'border-primary-200 hover:border-primary-300'
+                    }`}
                 >
                   <CalendarDays size={20} className="mx-auto mb-1 text-primary-700" />
                   <p className="text-xs text-primary-500">Weekly</p>
@@ -277,11 +336,10 @@ export default function ProductDetailPage() {
                   <button
                     key={variant.id}
                     onClick={() => setSelectedVariant(variant)}
-                    className={`px-4 py-2 rounded-lg border-2 text-sm transition-colors ${
-                      selectedVariant?.id === variant.id
-                        ? 'border-primary-900 bg-primary-50'
-                        : 'border-primary-200 hover:border-primary-300'
-                    }`}
+                    className={`px-4 py-2 rounded-lg border-2 text-sm transition-colors ${selectedVariant?.id === variant.id
+                      ? 'border-primary-900 bg-primary-50'
+                      : 'border-primary-200 hover:border-primary-300'
+                      }`}
                   >
                     {variant.name}
                     {variant.priceModifier > 0 && (
@@ -297,29 +355,77 @@ export default function ProductDetailPage() {
           {user?.role === 'customer' && (
             <div className="card p-4 space-y-4">
               <h3 className="font-semibold text-primary-900">Select Rental Period</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Start Date</label>
-                  <input
-                    type="datetime-local"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="input"
-                    min={new Date().toISOString().slice(0, 16)}
-                  />
+
+              {rentalType === 'hour' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="label">Select Date</label>
+                    <DatePicker
+                      selected={selectedDate}
+                      onChange={(date: Date | null) => setSelectedDate(date)}
+                      className="input w-full"
+                      minDate={new Date()}
+                      dateFormat="MMMM d, yyyy"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Start Time</label>
+                      <DatePicker
+                        selected={startTime}
+                        onChange={(date: Date | null) => setStartTime(date)}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={30}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
+                        className="input w-full"
+                        placeholderText="Start time"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">End Time</label>
+                      <DatePicker
+                        selected={endTime}
+                        onChange={(date: Date | null) => setEndTime(date)}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={30}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
+                        className="input w-full"
+                        placeholderText="End time"
+                        minTime={startTime || undefined}
+                        maxTime={startTime ? new Date(new Date().setHours(23, 59, 59)) : undefined}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="label">End Date</label>
-                  <input
-                    type="datetime-local"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="input"
-                    min={startDate || new Date().toISOString().slice(0, 16)}
-                  />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Start Date</label>
+                    <DatePicker
+                      selected={dateRangeStart}
+                      onChange={(date: Date | null) => setDateRangeStart(date)}
+                      className="input w-full"
+                      minDate={new Date()}
+                      placeholderText="Start date"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">End Date</label>
+                    <DatePicker
+                      selected={dateRangeEnd}
+                      onChange={(date: Date | null) => setDateRangeEnd(date)}
+                      className="input w-full"
+                      minDate={dateRangeStart || new Date()}
+                      placeholderText="End date"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Quantity */}
               <div>

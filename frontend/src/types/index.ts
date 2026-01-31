@@ -12,6 +12,12 @@ export interface User {
   role: UserRole;
   createdAt: string;
   referralCode?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   profilePhoto?: string;
 }
 
@@ -187,8 +193,7 @@ export interface Payment {
 // Address Type
 export interface Address {
   id: string;
-  label: string;
-  street: string;
+  address: string;
   city: string;
   state: string;
   postalCode: string;

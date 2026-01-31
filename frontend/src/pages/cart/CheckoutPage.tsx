@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  CreditCard, 
-  Building2, 
-  MapPin, 
-  Check, 
+import {
+  ArrowLeft,
+  CreditCard,
+  Building2,
+  MapPin,
+  Check,
   Plus,
   Shield,
   Calendar
@@ -19,8 +19,7 @@ import { Address, PaymentMethod } from '../../types';
 // Default empty address form
 const emptyAddress: Address = {
   id: 'new',
-  label: '',
-  street: '',
+  address: '',
   city: '',
   state: '',
   postalCode: '',
@@ -42,6 +41,51 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [securityDeposit] = useState(Math.round(subtotal * 0.1)); // 10% security deposit
+
+  // Location Data State
+  const [allCities, setAllCities] = useState<any[]>([]);
+  const [availableStates, setAvailableStates] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+
+  // Fetch cities data
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/nshntarora/Indian-Cities-JSON/master/cities.json')
+      .then(res => res.json())
+      .then((data: any[]) => {
+        setAllCities(data);
+        const uniqueStates = Array.from(new Set(data.map(city => city.state))).sort() as string[];
+        setAvailableStates(uniqueStates);
+      })
+      .catch(err => console.error('Failed to load location data', err));
+  }, []);
+
+  // Update available cities when state changes
+  useEffect(() => {
+    if (deliveryAddress.state) {
+      const citiesInState = allCities
+        .filter(c => c.state === deliveryAddress.state)
+        .map(c => c.name)
+        .sort();
+      setAvailableCities(citiesInState);
+    } else {
+      setAvailableCities([]);
+    }
+  }, [deliveryAddress.state, allCities]);
+
+  // Pre-fill address from user profile
+  useEffect(() => {
+    if (user) {
+      setDeliveryAddress(prev => ({
+        ...prev,
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        postalCode: user.postalCode || '',
+        country: user.country || 'India',
+      }));
+    }
+  }, [user]);
+
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -67,16 +111,16 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       // Get vendor_id from product (may be vendor_id or vendorId depending on source)
       const product = items[0]?.product as any;
       const vendorId = product?.vendor_id || product?.vendorId || '';
-      
+
       // Create order via API
       await ordersApi.createOrder({
         vendor_id: vendorId,
-        notes: `Delivery: ${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.state} ${deliveryAddress.postalCode}. Payment: ${paymentMethod}`,
+        notes: `Delivery: ${deliveryAddress.address}, ${deliveryAddress.city}, ${deliveryAddress.state} ${deliveryAddress.postalCode}. Payment: ${paymentMethod}`,
         lines: items.map(item => {
           const prod = item.product as any;
           return {
@@ -93,7 +137,7 @@ export default function CheckoutPage() {
           };
         }),
       });
-      
+
       clearCart();
       
       // Redirect to Razorpay for online payment
@@ -146,21 +190,19 @@ export default function CheckoutPage() {
                     setCurrentStep(step.key);
                   }
                 }}
-                className={`flex items-center gap-2 ${
-                  step.key === currentStep
-                    ? 'text-primary-900'
-                    : steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
+                className={`flex items-center gap-2 ${step.key === currentStep
+                  ? 'text-primary-900'
+                  : steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
                     ? 'text-green-600'
                     : 'text-primary-400'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                  step.key === currentStep
-                    ? 'border-primary-900 bg-primary-900 text-white'
-                    : steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step.key === currentStep
+                  ? 'border-primary-900 bg-primary-900 text-white'
+                  : steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
                     ? 'border-green-600 bg-green-600 text-white'
                     : 'border-primary-300'
-                }`}>
+                  }`}>
                   {steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep) ? (
                     <Check size={16} />
                   ) : (
@@ -170,11 +212,10 @@ export default function CheckoutPage() {
                 <span className="font-medium hidden sm:inline">{step.label}</span>
               </button>
               {idx < steps.length - 1 && (
-                <div className={`w-12 sm:w-24 h-0.5 mx-2 ${
-                  steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
-                    ? 'bg-green-600'
-                    : 'bg-primary-200'
-                }`} />
+                <div className={`w-12 sm:w-24 h-0.5 mx-2 ${steps.findIndex(s => s.key === step.key) < steps.findIndex(s => s.key === currentStep)
+                  ? 'bg-green-600'
+                  : 'bg-primary-200'
+                  }`} />
               )}
             </div>
           ))}
@@ -191,64 +232,64 @@ export default function CheckoutPage() {
                 <MapPin size={20} />
                 Delivery Address
               </h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-primary-700 mb-1">
-                    Address Label
+                    Address *
                   </label>
                   <input
                     type="text"
-                    value={deliveryAddress.label}
-                    onChange={(e) => setDeliveryAddress({...deliveryAddress, label: e.target.value})}
+                    value={deliveryAddress.address}
+                    onChange={(e) => setDeliveryAddress({ ...deliveryAddress, address: e.target.value })}
                     className="input"
-                    placeholder="e.g., Office, Home, Warehouse"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-primary-700 mb-1">
-                    Street Address *
-                  </label>
-                  <input
-                    type="text"
-                    value={deliveryAddress.street}
-                    onChange={(e) => setDeliveryAddress({...deliveryAddress, street: e.target.value})}
-                    className="input"
-                    placeholder="Enter street address"
+                    placeholder="Enter full address"
                     required
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary-700 mb-1">
-                      City *
-                    </label>
-                    <input
-                      type="text"
-                      value={deliveryAddress.city}
-                      onChange={(e) => setDeliveryAddress({...deliveryAddress, city: e.target.value})}
-                      className="input"
-                      placeholder="Enter city"
-                      required
-                    />
-                  </div>
                   <div>
                     <label className="block text-sm font-medium text-primary-700 mb-1">
                       State *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={deliveryAddress.state}
-                      onChange={(e) => setDeliveryAddress({...deliveryAddress, state: e.target.value})}
+                      onChange={(e) => {
+                        setDeliveryAddress({ ...deliveryAddress, state: e.target.value, city: '' });
+                      }}
                       className="input"
-                      placeholder="Enter state"
                       required
-                    />
+                    >
+                      <option value="">Select State</option>
+                      {availableStates.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary-700 mb-1">
+                      City *
+                    </label>
+                    <select
+                      value={deliveryAddress.city}
+                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
+                      className="input"
+                      disabled={!deliveryAddress.state}
+                      required
+                    >
+                      <option value="">Select City</option>
+                      {availableCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-primary-700 mb-1">
@@ -257,7 +298,7 @@ export default function CheckoutPage() {
                     <input
                       type="text"
                       value={deliveryAddress.postalCode}
-                      onChange={(e) => setDeliveryAddress({...deliveryAddress, postalCode: e.target.value})}
+                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, postalCode: e.target.value })}
                       className="input"
                       placeholder="Enter postal code"
                       required
@@ -270,7 +311,7 @@ export default function CheckoutPage() {
                     <input
                       type="text"
                       value={deliveryAddress.country}
-                      onChange={(e) => setDeliveryAddress({...deliveryAddress, country: e.target.value})}
+                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, country: e.target.value })}
                       className="input"
                       placeholder="Enter country"
                     />
@@ -280,7 +321,7 @@ export default function CheckoutPage() {
 
               <button
                 onClick={() => setCurrentStep('payment')}
-                disabled={!deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.postalCode}
+                disabled={!deliveryAddress.address || !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.postalCode}
                 className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Payment
@@ -299,11 +340,10 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 <button
                   onClick={() => setPaymentMethod('online')}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    paymentMethod === 'online'
-                      ? 'border-primary-900 bg-primary-50'
-                      : 'border-primary-200 hover:border-primary-300'
-                  }`}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'online'
+                    ? 'border-primary-900 bg-primary-50'
+                    : 'border-primary-200 hover:border-primary-300'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -325,11 +365,10 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => setPaymentMethod('bank_transfer')}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    paymentMethod === 'bank_transfer'
-                      ? 'border-primary-900 bg-primary-50'
-                      : 'border-primary-200 hover:border-primary-300'
-                  }`}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'bank_transfer'
+                    ? 'border-primary-900 bg-primary-50'
+                    : 'border-primary-200 hover:border-primary-300'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -357,7 +396,7 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-medium text-yellow-800">Security Deposit Required</p>
                     <p className="text-sm text-yellow-700 mt-1">
-                      A refundable security deposit of {formatPrice(securityDeposit)} will be collected 
+                      A refundable security deposit of {formatPrice(securityDeposit)} will be collected
                       to protect against damage or late returns. This will be refunded after successful return.
                     </p>
                   </div>
@@ -415,10 +454,7 @@ export default function CheckoutPage() {
               <div className="card p-6">
                 <h2 className="text-lg font-semibold text-primary-900 mb-4">Delivery Address</h2>
                 <div>
-                  {deliveryAddress.label && (
-                    <span className="badge badge-neutral mb-2">{deliveryAddress.label}</span>
-                  )}
-                  <p className="text-primary-900">{deliveryAddress.street}</p>
+                  <p className="text-primary-900">{deliveryAddress.address}</p>
                   <p className="text-primary-600">
                     {deliveryAddress.city}, {deliveryAddress.state} {deliveryAddress.postalCode}
                   </p>
@@ -491,7 +527,7 @@ export default function CheckoutPage() {
         <div className="lg:col-span-1">
           <div className="card p-6 sticky top-24">
             <h3 className="text-lg font-semibold text-primary-900 mb-4">Order Summary</h3>
-            
+
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-primary-600">Subtotal ({items.length} items)</span>

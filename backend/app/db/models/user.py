@@ -42,6 +42,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
 
     email = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, nullable=True)  # Added phone number
     password_hash = Column(String, nullable=False)
 
     role = Column(Enum(UserRole), nullable=False)
@@ -49,6 +50,13 @@ class User(Base):
     company_name = Column(String, nullable=True)
     business_category = Column(String, nullable=True)
     gstin = Column(String, nullable=True)
+
+    # Address information
+    address = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
+    country = Column(String, nullable=True, default="India")
 
     is_active = Column(Boolean, default=True)
     profile_photo = Column(String, nullable=True)  # URL to profile photo

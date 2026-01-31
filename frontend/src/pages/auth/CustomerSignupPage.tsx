@@ -101,9 +101,10 @@ export default function CustomerSignupPage() {
   };
 
   const validatePhone = (phone: string) => {
-    if (!phone) return true; // Optional for customer based on current form
-    // Simple 10-digit validation or international format
-    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    // Required now
+    if (!phone) return false;
+    // Exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phone);
   };
 
@@ -152,6 +153,7 @@ export default function CustomerSignupPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        phone: formData.phone,
         password: formData.password,
         role: 'customer',
         referralCode: formData.referralCode || undefined,
@@ -267,20 +269,25 @@ export default function CustomerSignupPage() {
 
         <div>
           <label htmlFor="phone" className="label">
-            Phone Number <span className="text-primary-400">(Optional)</span>
+            Phone Number
           </label>
-          <input
-            id="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => {
-              setFormData({ ...formData, phone: e.target.value });
-              if (phoneError) setPhoneError('');
-            }}
-            onBlur={handlePhoneBlur}
-            className={`input ${phoneError ? 'border-red-300' : ''}`}
-            placeholder="+91 98765 43210"
-          />
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500 font-medium">+91</span>
+            <input
+              id="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setFormData({ ...formData, phone: val });
+                if (phoneError) setPhoneError('');
+              }}
+              onBlur={handlePhoneBlur}
+              className={`input pl-12 ${phoneError ? 'border-red-300' : ''}`}
+              placeholder="98765 43210"
+              required
+            />
+          </div>
           {phoneError && (
             <p className="text-sm text-red-500 mt-1">{phoneError}</p>
           )}
@@ -350,10 +357,9 @@ export default function CustomerSignupPage() {
               type="text"
               value={formData.referralCode}
               onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-              className={`input pr-10 ${
-                referralValidation.valid === true ? 'border-green-500' : 
+              className={`input pr-10 ${referralValidation.valid === true ? 'border-green-500' :
                 referralValidation.valid === false ? 'border-red-300' : ''
-              }`}
+                }`}
               placeholder="Enter 8-character referral code"
               maxLength={8}
             />
@@ -408,7 +414,7 @@ export default function CustomerSignupPage() {
             </>
           )}
         </button>
-      </form>
+      </form >
 
       <p className="text-center text-sm text-primary-500">
         Already have an account?{' '}
@@ -416,6 +422,6 @@ export default function CustomerSignupPage() {
           Sign in
         </Link>
       </p>
-    </div>
+    </div >
   );
 }

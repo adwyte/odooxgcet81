@@ -44,7 +44,7 @@ export default function VendorSignupPage() {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  
+
   // Referral code validation state
   const [referralValidation, setReferralValidation] = useState<{
     checking: boolean;
@@ -58,9 +58,9 @@ export default function VendorSignupPage() {
       setReferralValidation({ checking: false, valid: null, message: '' });
       return;
     }
-    
+
     setReferralValidation({ checking: true, valid: null, message: '' });
-    
+
     try {
       const result = await authApi.validateReferralCode(code);
       setReferralValidation({
@@ -95,7 +95,7 @@ export default function VendorSignupPage() {
         setReferralValidation({ checking: false, valid: null, message: '' });
       }
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [formData.referralCode, validateReferralCode]);
 
@@ -123,7 +123,8 @@ export default function VendorSignupPage() {
 
   const validatePhone = (phone: string) => {
     // Required for vendor
-    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    // Exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phone);
   };
 
@@ -193,6 +194,7 @@ export default function VendorSignupPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        phone: formData.phone,
         companyName: formData.companyName,
         businessCategory: formData.businessCategory,
         gstin: formData.gstin || undefined,
@@ -287,19 +289,23 @@ export default function VendorSignupPage() {
             </div>
             <div>
               <label htmlFor="phone" className="label">Phone Number</label>
-              <input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value });
-                  if (phoneError) setPhoneError('');
-                }}
-                onBlur={handlePhoneBlur}
-                className={`input ${phoneError ? 'border-red-300' : ''}`}
-                placeholder="+91 98765 43210"
-                required
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500 font-medium">+91</span>
+                <input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setFormData({ ...formData, phone: val });
+                    if (phoneError) setPhoneError('');
+                  }}
+                  onBlur={handlePhoneBlur}
+                  className={`input pl-12 ${phoneError ? 'border-red-300' : ''}`}
+                  placeholder="98765 43210"
+                  required
+                />
+              </div>
               {phoneError && (
                 <p className="text-sm text-red-500 mt-1">{phoneError}</p>
               )}
@@ -472,10 +478,9 @@ export default function VendorSignupPage() {
                 type="text"
                 value={formData.referralCode}
                 onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-                className={`input pr-10 ${
-                  referralValidation.valid === true ? 'border-green-500' : 
+                className={`input pr-10 ${referralValidation.valid === true ? 'border-green-500' :
                   referralValidation.valid === false ? 'border-red-300' : ''
-                }`}
+                  }`}
                 placeholder="Enter 8-character referral code"
                 maxLength={8}
               />
