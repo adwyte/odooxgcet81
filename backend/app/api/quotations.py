@@ -143,7 +143,9 @@ async def get_quotations(
     # Filter based on user role
     if current_user.role == UserRole.CUSTOMER:
         query = query.filter(Quotation.customer_id == current_user.id)
-    # Admin and vendor see all (vendor would filter by their products in a real system)
+    elif current_user.role == UserRole.VENDOR:
+        query = query.filter(Quotation.vendor_id == current_user.id)
+    # Admin sees all
     
     if status:
         try:
@@ -169,57 +171,87 @@ async def get_quotation(
     
     if current_user.role == UserRole.CUSTOMER and quotation.customer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    if current_user.role == UserRole.VENDOR and quotation.vendor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     return quotation_to_response(quotation)
 
 
-@router.post("", response_model=QuotationResponse)
+@router.post("", response_model=List[QuotationResponse])
 async def create_quotation(
     data: QuotationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new quotation (from cart)"""
-    # Calculate totals
-    subtotal = sum(line.total_price for line in data.lines)
-    tax_rate = 18  # GST
-    tax_amount = subtotal * (tax_rate / 100)
-    total_amount = subtotal + tax_amount
+    """Create new quotation(s) - splits by vendor"""
+    # 1. Group items by vendor
+    items_by_vendor = {}
     
-    quotation = Quotation(
-        quotation_number=generate_quotation_number(),
-        customer_id=current_user.id,
-        status=QuotationStatus.REQUESTED,
-        subtotal=subtotal,
-        tax_rate=tax_rate,
-        tax_amount=tax_amount,
-        total_amount=total_amount,
-        valid_until=datetime.now() + timedelta(days=data.valid_days),
-        notes=data.notes
-    )
-    db.add(quotation)
-    db.flush()
-    
-    # Create quotation lines
     for line_data in data.lines:
         product = db.query(Product).filter(Product.id == uuid.UUID(line_data.product_id)).first()
-        line = QuotationLine(
-            quotation_id=quotation.id,
-            product_id=uuid.UUID(line_data.product_id),
-            product_name=product.name if product else "",
-            quantity=line_data.quantity,
-            rental_period_type=line_data.rental_period.type,
-            rental_start_date=datetime.fromisoformat(line_data.rental_period.start_date.replace('Z', '+00:00')),
-            rental_end_date=datetime.fromisoformat(line_data.rental_period.end_date.replace('Z', '+00:00')),
-            unit_price=line_data.unit_price,
-            total_price=line_data.total_price
+        if not product:
+            continue
+            
+        vendor_id = str(product.vendor_id)
+        if vendor_id not in items_by_vendor:
+            items_by_vendor[vendor_id] = []
+        
+        # Attach product info to line data for later use
+        items_by_vendor[vendor_id].append({
+            "line_data": line_data,
+            "product": product
+        })
+    
+    created_quotations = []
+    
+    # 2. Create one quotation per vendor
+    for vendor_id, items in items_by_vendor.items():
+        # Calculate totals for this vendor's items
+        subtotal = sum(item["line_data"].total_price for item in items)
+        tax_rate = 18
+        tax_amount = subtotal * (tax_rate / 100)
+        total_amount = subtotal + tax_amount
+        
+        quotation = Quotation(
+            quotation_number=generate_quotation_number(),
+            customer_id=current_user.id,
+            vendor_id=uuid.UUID(vendor_id),
+            status=QuotationStatus.REQUESTED,
+            subtotal=subtotal,
+            tax_rate=tax_rate,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
+            valid_until=datetime.now() + timedelta(days=data.valid_days),
+            notes=data.notes
         )
-        db.add(line)
-    
+        db.add(quotation)
+        db.flush()
+        
+        # Create lines
+        for item in items:
+            line_data = item["line_data"]
+            product = item["product"]
+            
+            line = QuotationLine(
+                quotation_id=quotation.id,
+                product_id=product.id,
+                product_name=product.name,
+                quantity=line_data.quantity,
+                rental_period_type=line_data.rental_period.type,
+                rental_start_date=datetime.fromisoformat(line_data.rental_period.start_date.replace('Z', '+00:00')),
+                rental_end_date=datetime.fromisoformat(line_data.rental_period.end_date.replace('Z', '+00:00')),
+                unit_price=line_data.unit_price,
+                total_price=line_data.total_price
+            )
+            db.add(line)
+        
+        created_quotations.append(quotation)
+
     db.commit()
-    db.refresh(quotation)
+    for q in created_quotations:
+        db.refresh(q)
     
-    return quotation_to_response(quotation)
+    return [quotation_to_response(q) for q in created_quotations]
 
 
 @router.put("/{quotation_id}", response_model=QuotationResponse)
