@@ -203,11 +203,13 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
         
         # Redirect to frontend with tokens
-        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
         return RedirectResponse(url=redirect_url)
     
     except Exception as e:
-        redirect_url = f"{settings.FRONTEND_URL}/login?error=oauth_failed"
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/login?error=oauth_failed"
         return RedirectResponse(url=redirect_url)
 
 

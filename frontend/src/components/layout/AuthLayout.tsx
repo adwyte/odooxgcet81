@@ -63,7 +63,7 @@ export default function AuthLayout() {
         </div>
 
         <p className="text-sm text-primary-400">
-          © 2024 RentPe. All rights reserved.
+          © 2026 RentPe. All rights reserved.
         </p>
       </div>
 

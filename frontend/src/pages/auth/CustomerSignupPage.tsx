@@ -18,6 +18,7 @@ export default function CustomerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   const passwordRequirements = [
@@ -42,14 +43,35 @@ export default function CustomerSignupPage() {
     }
   };
 
+  const validatePhone = (phone: string) => {
+    if (!phone) return true; // Optional for customer based on current form
+    // Simple 10-digit validation or international format
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handlePhoneBlur = () => {
+    if (formData.phone && !validatePhone(formData.phone)) {
+      setPhoneError('Please enter a valid phone number');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     setEmailError('');
+    setPhoneError('');
 
     if (!validateEmail(formData.email)) {
       setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePhone(formData.phone)) {
+      setPhoneError('Please enter a valid phone number');
       return;
     }
 
@@ -193,10 +215,17 @@ export default function CustomerSignupPage() {
             id="phone"
             type="tel"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className="input"
+            onChange={(e) => {
+              setFormData({ ...formData, phone: e.target.value });
+              if (phoneError) setPhoneError('');
+            }}
+            onBlur={handlePhoneBlur}
+            className={`input ${phoneError ? 'border-red-300' : ''}`}
             placeholder="+91 98765 43210"
           />
+          {phoneError && (
+            <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+          )}
         </div>
 
         <div>
