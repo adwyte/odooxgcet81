@@ -6,6 +6,7 @@ import { authApi } from '../../api/auth';
 
 export default function CustomerSignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signup, loginWithGoogle, isLoading } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ export default function CustomerSignupPage() {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  
+
   // Referral code validation state
   const [referralValidation, setReferralValidation] = useState<{
     checking: boolean;
@@ -36,9 +37,9 @@ export default function CustomerSignupPage() {
       setReferralValidation({ checking: false, valid: null, message: '' });
       return;
     }
-    
+
     setReferralValidation({ checking: true, valid: null, message: '' });
-    
+
     try {
       const result = await authApi.validateReferralCode(code);
       setReferralValidation({
@@ -73,7 +74,7 @@ export default function CustomerSignupPage() {
         setReferralValidation({ checking: false, valid: null, message: '' });
       }
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [formData.referralCode, validateReferralCode]);
 
