@@ -49,7 +49,7 @@ export default function ProductsPage() {
 
   const handleDeleteConfirm = async () => {
     if (!productToDelete) return;
-    
+
     try {
       setDeleting(true);
       await productsApi.deleteProduct(productToDelete.id);
@@ -65,8 +65,9 @@ export default function ProductsPage() {
 
   const canManageProduct = (product: Product) => {
     if (!user) return false;
-    if (user.role === 'admin') return true;
-    if (user.role === 'vendor' && product.vendor_id === user.id) return true;
+    const role = user.role.toUpperCase();
+    if (role === 'ADMIN') return true;
+    if (role === 'VENDOR' && product.vendor_id === user.id) return true;
     return false;
   };
 
@@ -126,8 +127,8 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-primary-900">Products</h1>
           <p className="text-primary-500">Browse and rent equipment</p>
         </div>
-        
-        {(user?.role === 'vendor' || user?.role === 'admin') && (
+
+        {(user?.role?.toUpperCase() === 'VENDOR' || user?.role?.toUpperCase() === 'ADMIN') && (
           <Link to="/products/new" className="btn btn-primary">
             <Plus size={18} />
             Add Product
@@ -160,7 +161,7 @@ export default function ProductsPage() {
               {selectedCategory}
               <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {showFilters && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-primary-200 rounded-xl shadow-lg py-2 z-10">
                 {productCategories.map((category) => (
@@ -170,9 +171,8 @@ export default function ProductsPage() {
                       setSelectedCategory(category);
                       setShowFilters(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 ${
-                      selectedCategory === category ? 'bg-primary-100 font-medium' : ''
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 ${selectedCategory === category ? 'bg-primary-100 font-medium' : ''
+                      }`}
                   >
                     {category}
                   </button>
@@ -231,7 +231,7 @@ export default function ProductsPage() {
                     </button>
                   </div>
                 )}
-                
+
                 <Link to={`/products/${product.id}`} className="block">
                   {/* Image */}
                   <div className="aspect-[4/3] bg-primary-100 overflow-hidden">
@@ -241,54 +241,54 @@ export default function ProductsPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                
+
                   {/* Content */}
                   <div className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
-                    {product.available_quantity > 0 ? (
-                      <span className="badge badge-success text-xs">Available</span>
-                    ) : (
-                      <span className="badge badge-danger text-xs">Out of Stock</span>
-                    )}
-                  </div>
-                  
-                  <h3 className="font-semibold text-primary-900 line-clamp-1">{product.name}</h3>
-                  <p className="text-sm text-primary-500 line-clamp-2">{product.description}</p>
-                  
-                  {/* Pricing */}
-                  <div className="pt-2 border-t border-primary-100">
-                    <div className="flex items-center gap-3">
-                      {product.rental_pricing?.hourly && (
-                        <div className="flex items-center gap-1 text-xs text-primary-500">
-                          <Clock size={14} />
-                          {formatPrice(product.rental_pricing.hourly)}
-                        </div>
-                      )}
-                      {product.rental_pricing?.daily && (
-                        <div className="flex items-center gap-1 text-xs text-primary-500">
-                          <Calendar size={14} />
-                          {formatPrice(product.rental_pricing.daily)}
-                        </div>
-                      )}
-                      {product.rental_pricing?.weekly && (
-                        <div className="flex items-center gap-1 text-xs text-primary-500">
-                          <CalendarDays size={14} />
-                          {formatPrice(product.rental_pricing.weekly)}
-                        </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="badge badge-neutral text-xs">{product.category || 'Uncategorized'}</span>
+                      {product.available_quantity > 0 ? (
+                        <span className="badge badge-success text-xs">Available</span>
+                      ) : (
+                        <span className="badge badge-danger text-xs">Out of Stock</span>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-primary-900">
-                      {priceInfo.price}
-                      <span className="text-sm font-normal text-primary-500">{priceInfo.unit}</span>
-                    </span>
-                    <span className="text-xs text-primary-500">
-                      {product.available_quantity} available
-                    </span>
-                  </div>
+
+                    <h3 className="font-semibold text-primary-900 line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-primary-500 line-clamp-2">{product.description}</p>
+
+                    {/* Pricing */}
+                    <div className="pt-2 border-t border-primary-100">
+                      <div className="flex items-center gap-3">
+                        {product.rental_pricing?.hourly && (
+                          <div className="flex items-center gap-1 text-xs text-primary-500">
+                            <Clock size={14} />
+                            {formatPrice(product.rental_pricing.hourly)}
+                          </div>
+                        )}
+                        {product.rental_pricing?.daily && (
+                          <div className="flex items-center gap-1 text-xs text-primary-500">
+                            <Calendar size={14} />
+                            {formatPrice(product.rental_pricing.daily)}
+                          </div>
+                        )}
+                        {product.rental_pricing?.weekly && (
+                          <div className="flex items-center gap-1 text-xs text-primary-500">
+                            <CalendarDays size={14} />
+                            {formatPrice(product.rental_pricing.weekly)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-primary-900">
+                        {priceInfo.price}
+                        <span className="text-sm font-normal text-primary-500">{priceInfo.unit}</span>
+                      </span>
+                      <span className="text-xs text-primary-500">
+                        {product.available_quantity} available
+                      </span>
+                    </div>
                   </div>
                 </Link>
               </div>
@@ -321,7 +321,7 @@ export default function ProductsPage() {
                     </button>
                   </div>
                 )}
-                
+
                 <Link to={`/products/${product.id}`} className="flex gap-6 flex-1">
                   {/* Image */}
                   <div className="w-32 h-24 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
@@ -331,7 +331,7 @@ export default function ProductsPage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
+
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
@@ -347,14 +347,14 @@ export default function ProductsPage() {
                         <h3 className="font-semibold text-primary-900">{product.name}</h3>
                         <p className="text-sm text-primary-500 line-clamp-1 mt-1">{product.description}</p>
                       </div>
-                      
+
                       <div className="text-right flex-shrink-0">
                         <span className="text-lg font-bold text-primary-900">{priceInfo.price}</span>
                         <span className="text-sm text-primary-500">{priceInfo.unit}</span>
                         <p className="text-xs text-primary-500 mt-1">{product.available_quantity} available</p>
                       </div>
                     </div>
-                    
+
                     {/* Pricing Options */}
                     <div className="flex items-center gap-4 mt-3">
                       {product.rental_pricing?.hourly && (
@@ -397,8 +397,8 @@ export default function ProductsPage() {
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && productToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
-            className="absolute inset-0 bg-black/50" 
+          <div
+            className="absolute inset-0 bg-black/50"
             onClick={() => setDeleteModalOpen(false)}
             onKeyDown={(e) => e.key === 'Escape' && setDeleteModalOpen(false)}
             role="button"

@@ -7,6 +7,7 @@ import uuid
 import shutil
 
 from app.db.session import SessionLocal
+from app.db import get_db
 from app.core.config import settings
 from app.schemas.auth import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
@@ -20,12 +21,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 # Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 
 @router.post("/register", response_model=TokenResponse)

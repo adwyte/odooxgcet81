@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
+from app.db import get_db
 from app.db.models.user import User, UserRole, generate_referral_code
 from app.schemas.auth import UserCreate, UserResponse, UserUpdate
 
@@ -347,10 +348,9 @@ def user_to_response(user: User) -> UserResponse:
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)  # Inject DB session
 ) -> User:
     """Get current user from JWT token"""
-    from app.db import get_db
-    from app.db.session import SessionLocal
     
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -366,16 +366,12 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
     
-    db = SessionLocal()
-    try:
-        user = get_user_by_id(db, user_id)
-        if user is None:
-            raise credentials_exception
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User account is disabled"
-            )
-        return user
-    finally:
-        db.close()
+    user = get_user_by_id(db, user_id)
+    if user is None:
+        raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled"
+        )
+    return user

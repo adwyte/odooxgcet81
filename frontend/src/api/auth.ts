@@ -16,6 +16,7 @@ export interface UserUpdateData {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  phone_number?: string;
   company_name?: string;
   business_category?: string;
   gstin?: string;
@@ -176,25 +177,7 @@ class AuthApi {
     return this.handleResponse<UserResponse>(response);
   }
 
-  async updateProfile(data: {
-    first_name?: string;
-    last_name?: string;
-    phone_number?: string;
-    company_name?: string;
-    business_category?: string;
-    gstin?: string;
-  }): Promise<UserResponse> {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${this.baseUrl}/me`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data),
-    });
-    return this.handleResponse<UserResponse>(response);
-  }
+
 }
 
 export const authApi = new AuthApi();
