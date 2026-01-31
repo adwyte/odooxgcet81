@@ -7,7 +7,8 @@ from app.core.config import settings
 from app.schemas.auth import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
     OTPRequest, OTPVerify, PasswordReset, TokenRefresh,
-    MessageResponse, OTPResponse, ReferralCodeValidation
+    MessageResponse, OTPResponse, ReferralCodeValidation,
+    UserUpdate
 )
 from app.services import auth_service, email_service
 
@@ -319,3 +320,35 @@ async def get_current_user(
         )
     
     return auth_service.user_to_response(user)
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    user_update: UserUpdate,
+    authorization: str = None,
+    db: Session = Depends(get_db)
+):
+    """Update current user profile"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    
+    token = authorization.split(" ")[1]
+    payload = auth_service.verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    
+    user = auth_service.get_user_by_id(db, payload.get("sub"))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    updated_user = auth_service.update_user_profile(db, user, user_update)
+    return auth_service.user_to_response(updated_user)

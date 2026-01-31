@@ -11,12 +11,14 @@ interface AuthContextType extends AuthState {
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
   loginWithGoogle: () => void;
   handleOAuthCallback: (accessToken: string, refreshToken: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 interface SignupData {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   companyName?: string;
   businessCategory?: string;
   gstin?: string;
@@ -38,6 +40,13 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   role: apiUser.role.toLowerCase() as UserRole,
   createdAt: new Date().toISOString(),
   referralCode: apiUser.referral_code,
+  phone: apiUser.phone,
+  // Address info
+  address: apiUser.address,
+  city: apiUser.city,
+  state: apiUser.state,
+  postalCode: apiUser.postal_code,
+  country: apiUser.country,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -89,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         first_name: data.firstName,
         last_name: data.lastName,
         email: data.email,
+        phone: data.phone,
         password: data.password,
         company_name: data.companyName,
         business_category: data.businessCategory,
@@ -147,6 +157,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const accessToken = localStorage.getItem('access_token');
+    if (!accessToken) return;
+
+    try {
+      const userResponse = await authApi.getCurrentUser(accessToken);
+      const user = mapApiUserToUser(userResponse);
+      localStorage.setItem('user', JSON.stringify(user));
+      setState(prev => ({
+        ...prev,
+        user,
+      }));
+    } catch (error) {
+      console.error('Failed to refresh profile', error);
+    }
+  }, []);
+
   // Check for stored tokens on mount
   useEffect(() => {
     const initAuth = async () => {
@@ -197,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetPassword,
         loginWithGoogle,
         handleOAuthCallback,
+        refreshProfile,
       }}
     >
       {children}

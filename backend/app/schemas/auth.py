@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
+    phone: str
     password: str
     company_name: Optional[str] = None
     business_category: Optional[str] = None
@@ -56,16 +57,38 @@ class OAuthCallback(BaseModel):
     code: str
     state: Optional[str] = None
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    company_name: Optional[str] = None
+    business_category: Optional[str] = None
+    gstin: Optional[str] = None
+    # Address fields
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+
 # Response Schemas
 class UserResponse(BaseModel):
     id: str
     first_name: str
     last_name: str
     email: str
+    phone: Optional[str] = None
     role: UserRole
     company_name: Optional[str] = None
     business_category: Optional[str] = None
     gstin: Optional[str] = None
+    # Address info
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    
     is_active: bool = True
     referral_code: Optional[str] = None  # User's own referral code
 

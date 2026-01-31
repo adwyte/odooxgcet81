@@ -12,6 +12,13 @@ export interface User {
   role: UserRole;
   createdAt: string;
   referralCode?: string;
+  phone?: string;
+  // Address info
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export interface AuthState {

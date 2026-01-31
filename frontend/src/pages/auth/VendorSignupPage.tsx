@@ -44,7 +44,7 @@ export default function VendorSignupPage() {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  
+
   // Referral code validation state
   const [referralValidation, setReferralValidation] = useState<{
     checking: boolean;
@@ -58,9 +58,9 @@ export default function VendorSignupPage() {
       setReferralValidation({ checking: false, valid: null, message: '' });
       return;
     }
-    
+
     setReferralValidation({ checking: true, valid: null, message: '' });
-    
+
     try {
       const result = await authApi.validateReferralCode(code);
       setReferralValidation({
@@ -95,7 +95,7 @@ export default function VendorSignupPage() {
         setReferralValidation({ checking: false, valid: null, message: '' });
       }
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [formData.referralCode, validateReferralCode]);
 
@@ -193,6 +193,7 @@ export default function VendorSignupPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        phone: formData.phone,
         companyName: formData.companyName,
         businessCategory: formData.businessCategory,
         gstin: formData.gstin || undefined,
@@ -472,10 +473,9 @@ export default function VendorSignupPage() {
                 type="text"
                 value={formData.referralCode}
                 onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-                className={`input pr-10 ${
-                  referralValidation.valid === true ? 'border-green-500' : 
-                  referralValidation.valid === false ? 'border-red-300' : ''
-                }`}
+                className={`input pr-10 ${referralValidation.valid === true ? 'border-green-500' :
+                    referralValidation.valid === false ? 'border-red-300' : ''
+                  }`}
                 placeholder="Enter 8-character referral code"
                 maxLength={8}
               />

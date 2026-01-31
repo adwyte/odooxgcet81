@@ -6,6 +6,7 @@ import { authApi } from '../../api/auth';
 
 export default function CustomerSignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signup, loginWithGoogle, isLoading } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ export default function CustomerSignupPage() {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  
+
   // Referral code validation state
   const [referralValidation, setReferralValidation] = useState<{
     checking: boolean;
@@ -36,9 +37,9 @@ export default function CustomerSignupPage() {
       setReferralValidation({ checking: false, valid: null, message: '' });
       return;
     }
-    
+
     setReferralValidation({ checking: true, valid: null, message: '' });
-    
+
     try {
       const result = await authApi.validateReferralCode(code);
       setReferralValidation({
@@ -73,7 +74,7 @@ export default function CustomerSignupPage() {
         setReferralValidation({ checking: false, valid: null, message: '' });
       }
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [formData.referralCode, validateReferralCode]);
 
@@ -100,7 +101,8 @@ export default function CustomerSignupPage() {
   };
 
   const validatePhone = (phone: string) => {
-    if (!phone) return true; // Optional for customer based on current form
+    // Required now
+    if (!phone) return false;
     // Simple 10-digit validation or international format
     const phoneRegex = /^\+?[\d\s-]{10,}$/;
     return phoneRegex.test(phone);
@@ -151,6 +153,7 @@ export default function CustomerSignupPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        phone: formData.phone,
         password: formData.password,
         role: 'customer',
         referralCode: formData.referralCode || undefined,
@@ -266,7 +269,7 @@ export default function CustomerSignupPage() {
 
         <div>
           <label htmlFor="phone" className="label">
-            Phone Number <span className="text-primary-400">(Optional)</span>
+            Phone Number
           </label>
           <input
             id="phone"
@@ -279,6 +282,7 @@ export default function CustomerSignupPage() {
             onBlur={handlePhoneBlur}
             className={`input ${phoneError ? 'border-red-300' : ''}`}
             placeholder="+91 98765 43210"
+            required
           />
           {phoneError && (
             <p className="text-sm text-red-500 mt-1">{phoneError}</p>
@@ -349,10 +353,9 @@ export default function CustomerSignupPage() {
               type="text"
               value={formData.referralCode}
               onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-              className={`input pr-10 ${
-                referralValidation.valid === true ? 'border-green-500' : 
+              className={`input pr-10 ${referralValidation.valid === true ? 'border-green-500' :
                 referralValidation.valid === false ? 'border-red-300' : ''
-              }`}
+                }`}
               placeholder="Enter 8-character referral code"
               maxLength={8}
             />
@@ -407,7 +410,7 @@ export default function CustomerSignupPage() {
             </>
           )}
         </button>
-      </form>
+      </form >
 
       <p className="text-center text-sm text-primary-500">
         Already have an account?{' '}
@@ -415,6 +418,6 @@ export default function CustomerSignupPage() {
           Sign in
         </Link>
       </p>
-    </div>
+    </div >
   );
 }

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { 
-  User, 
-  Building2, 
-  Lock, 
-  Bell, 
+import { useState, useEffect } from 'react';
+import {
+  User,
+  Building2,
+  Lock,
+  Bell,
   CreditCard,
   Save,
   Camera,
@@ -13,32 +13,87 @@ import {
   Package
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/auth';
 
 type SettingsTab = 'profile' | 'company' | 'security' | 'notifications' | 'billing' | 'rental';
 
+interface CityData {
+  id: string;
+  name: string;
+  state: string;
+}
+
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Parse phone number to remove +91 prefix if present for display
+  const getRawPhone = (phone: string) => {
+    if (!phone) return '';
+    return phone.replace(/^\+91\s?/, '').replace(/\s/g, '');
+  };
 
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: '+91 98765 43210',
+    phone: getRawPhone(user?.phone || ''),
     avatar: '',
+    // Customer specific fields
+    address: user?.address || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    postalCode: user?.postalCode || '',
   });
 
   const [companyData, setCompanyData] = useState({
     companyName: user?.companyName || '',
     businessCategory: user?.businessCategory || '',
     gstin: user?.gstin || '',
-    address: '123 Business Park, Mumbai',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    postalCode: '400001',
-    country: 'India',
+    address: user?.address || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    postalCode: user?.postalCode || '',
+    country: user?.country || 'India', // Default to India
   });
+
+  // Location Data State
+  const [allCities, setAllCities] = useState<CityData[]>([]);
+  const [availableStates, setAvailableStates] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
+
+  useEffect(() => {
+    // Fetch cities data
+    fetch('https://raw.githubusercontent.com/nshntarora/Indian-Cities-JSON/master/cities.json')
+      .then(res => res.json())
+      .then((data: CityData[]) => {
+        setAllCities(data);
+        // Extract unique states
+        const uniqueStates = Array.from(new Set(data.map(city => city.state))).sort();
+        setAvailableStates(uniqueStates);
+        setLoadingLocations(false);
+      })
+      .catch(err => {
+        console.error('Failed to load location data', err);
+        setLoadingLocations(false);
+      });
+  }, []);
+
+  // Update available cities when state changes (for Company)
+  useEffect(() => {
+    if (companyData.state) {
+      const citiesInState = allCities
+        .filter(c => c.state === companyData.state)
+        .map(c => c.name)
+        .sort();
+      setAvailableCities(citiesInState);
+    } else {
+      setAvailableCities([]);
+    }
+  }, [companyData.state, allCities]);
+  const [pincodeError, setPincodeError] = useState('');
 
   const [securityData, setSecurityData] = useState({
     currentPassword: '',
@@ -66,15 +121,71 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    alert('Settings saved successfully!');
+    setPincodeError('');
+
+    try {
+      if (companyData.postalCode && !/^\d{4,10}$/.test(companyData.postalCode)) {
+        setPincodeError('Invalid postal code');
+        setIsSaving(false);
+        return;
+      }
+
+      await authApi.updateProfile({
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        // Add prefix back before saving
+        phone: profileData.phone ? `+91${profileData.phone}` : '',
+        // Use profile address for customers, company address for vendors
+        address: user?.role === 'customer' ? profileData.address : companyData.address,
+        city: user?.role === 'customer' ? profileData.city : companyData.city,
+        state: user?.role === 'customer' ? profileData.state : companyData.state,
+        postal_code: user?.role === 'customer' ? profileData.postalCode : companyData.postalCode,
+        country: user?.role === 'customer' ? 'India' : companyData.country,
+        // Company info
+        company_name: user?.role === 'vendor' ? companyData.companyName : undefined,
+        business_category: user?.role === 'vendor' ? companyData.businessCategory : undefined,
+        gstin: user?.role === 'vendor' ? companyData.gstin : undefined,
+      });
+
+      await refreshProfile();
+      alert('Settings saved successfully!');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>, type: 'company' | 'profile') => {
+    const newState = e.target.value;
+    if (type === 'company') {
+      setCompanyData({ ...companyData, state: newState, city: '' });
+    } else {
+      setProfileData({ ...profileData, state: newState, city: '' });
+    }
+  };
+
+  const [profileCities, setProfileCities] = useState<string[]>([]);
+
+  // Update available cities for Profile (Customer)
+  useEffect(() => {
+    if (profileData.state) {
+      const citiesInState = allCities
+        .filter(c => c.state === profileData.state)
+        .map(c => c.name)
+        .sort();
+      setProfileCities(citiesInState);
+    } else {
+      setProfileCities([]);
+    }
+  }, [profileData.state, allCities]);
 
   const tabs = [
     { id: 'profile' as SettingsTab, label: 'Profile', icon: <User size={18} /> },
-    { id: 'company' as SettingsTab, label: 'Company', icon: <Building2 size={18} /> },
+    ...(user?.role !== 'customer' ? [
+      { id: 'company' as SettingsTab, label: 'Company', icon: <Building2 size={18} /> },
+    ] : []),
     { id: 'security' as SettingsTab, label: 'Security', icon: <Lock size={18} /> },
     { id: 'notifications' as SettingsTab, label: 'Notifications', icon: <Bell size={18} /> },
     ...(user?.role !== 'customer' ? [
@@ -100,11 +211,10 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-primary-900 text-white'
-                      : 'text-primary-600 hover:bg-primary-100 hover:text-primary-900'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeTab === tab.id
+                    ? 'bg-primary-900 text-white'
+                    : 'text-primary-600 hover:bg-primary-100 hover:text-primary-900'
+                    }`}
                 >
                   {tab.icon}
                   <span className="font-medium">{tab.label}</span>
@@ -120,7 +230,7 @@ export default function SettingsPage() {
           {activeTab === 'profile' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Profile Information</h2>
-              
+
               {/* Avatar */}
               <div className="flex items-center gap-6 mb-6 pb-6 border-b border-primary-200">
                 <div className="relative">
@@ -173,16 +283,86 @@ export default function SettingsPage() {
                 <div>
                   <label className="label">Phone Number</label>
                   <div className="relative">
-                    <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500 font-medium">+91</span>
                     <input
                       type="tel"
                       value={profileData.phone}
-                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                      className="input pl-10"
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setProfileData({ ...profileData, phone: val });
+                      }}
+                      className="input pl-12"
+                      placeholder="9876543210"
                     />
                   </div>
                 </div>
               </div>
+
+              {/* Customer Address Fields */}
+              {user?.role === 'customer' && (
+                <div className="mt-6 pt-6 border-t border-primary-200">
+                  <h3 className="text-sm font-semibold text-primary-900 mb-4">Address Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="sm:col-span-2">
+                      <label className="label">Address</label>
+                      <div className="relative">
+                        <MapPin size={18} className="absolute left-3 top-3 text-primary-400" />
+                        <textarea
+                          value={profileData.address}
+                          onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                          className="input pl-10 min-h-[80px]"
+                          rows={2}
+                          placeholder="House No, Street Name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">State</label>
+                      <select
+                        value={profileData.state}
+                        onChange={(e) => handleStateChange(e, 'profile')}
+                        className="input"
+                      >
+                        <option value="">Select State</option>
+                        {availableStates.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">City</label>
+                      <select
+                        value={profileData.city}
+                        onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                        className="input"
+                        disabled={!profileData.state}
+                      >
+                        <option value="">Select City</option>
+                        {profileCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Postal Code</label>
+                      <input
+                        type="text"
+                        value={profileData.postalCode}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setProfileData({ ...profileData, postalCode: val });
+                        }}
+                        className="input"
+                        placeholder="400001"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 flex justify-end">
                 <button onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
@@ -197,7 +377,7 @@ export default function SettingsPage() {
           {activeTab === 'company' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Company Information</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="label">Company Name</label>
@@ -231,40 +411,58 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">City</label>
+                  <label className="label">Country</label>
                   <input
                     type="text"
-                    value={companyData.city}
-                    onChange={(e) => setCompanyData({ ...companyData, city: e.target.value })}
-                    className="input"
+                    value="India"
+                    disabled
+                    className="input bg-gray-50 text-gray-500"
                   />
                 </div>
                 <div>
                   <label className="label">State</label>
-                  <input
-                    type="text"
+                  <select
                     value={companyData.state}
-                    onChange={(e) => setCompanyData({ ...companyData, state: e.target.value })}
+                    onChange={(e) => handleStateChange(e, 'company')}
                     className="input"
-                  />
+                  >
+                    <option value="">Select State</option>
+                    {availableStates.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">City</label>
+                  <select
+                    value={companyData.city}
+                    onChange={(e) => setCompanyData({ ...companyData, city: e.target.value })}
+                    className="input"
+                    disabled={!companyData.state}
+                  >
+                    <option value="">Select City</option>
+                    {availableCities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="label">Postal Code</label>
                   <input
                     type="text"
                     value={companyData.postalCode}
-                    onChange={(e) => setCompanyData({ ...companyData, postalCode: e.target.value })}
-                    className="input"
+                    onChange={(e) => {
+                      setCompanyData({ ...companyData, postalCode: e.target.value });
+                      if (pincodeError) setPincodeError('');
+                    }}
+                    className={`input ${pincodeError ? 'border-red-300' : ''}`}
+                    placeholder="400001"
                   />
-                </div>
-                <div>
-                  <label className="label">Country</label>
-                  <input
-                    type="text"
-                    value={companyData.country}
-                    onChange={(e) => setCompanyData({ ...companyData, country: e.target.value })}
-                    className="input"
-                  />
+                  {pincodeError && <p className="text-xs text-red-500 mt-1">{pincodeError}</p>}
                 </div>
               </div>
 
@@ -281,7 +479,7 @@ export default function SettingsPage() {
           {activeTab === 'security' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Change Password</h2>
-              
+
               <div className="max-w-md space-y-6">
                 <div>
                   <label className="label">Current Password</label>
@@ -324,14 +522,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="mt-8 pt-8 border-t border-primary-200">
-                <h3 className="font-semibold text-primary-900 mb-4">Two-Factor Authentication</h3>
-                <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl">
-                  <div>
-                    <p className="font-medium text-primary-900">Enable 2FA</p>
-                    <p className="text-sm text-primary-500">Add an extra layer of security to your account</p>
-                  </div>
-                  <button className="btn btn-secondary">Enable</button>
-                </div>
+                {/* 2FA Removed as per request */}
               </div>
             </div>
           )}
@@ -340,7 +531,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Notification Preferences</h2>
-              
+
               <div className="space-y-6">
                 <div>
                   <h3 className="font-medium text-primary-900 mb-4">Email Notifications</h3>
@@ -398,7 +589,7 @@ export default function SettingsPage() {
           {activeTab === 'rental' && user?.role !== 'customer' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Rental Configuration</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="label">Default Rental Period</label>
@@ -483,7 +674,7 @@ export default function SettingsPage() {
           {activeTab === 'billing' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Payment Methods</h2>
-              
+
               <div className="space-y-4 mb-6">
                 <div className="flex items-center justify-between p-4 border border-primary-200 rounded-xl">
                   <div className="flex items-center gap-4">
