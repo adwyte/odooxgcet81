@@ -14,7 +14,8 @@ import {
   X,
   LayoutDashboard,
   FolderTree,
-  Cog
+  Cog,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -46,6 +47,7 @@ const navSections: NavSection[] = [
       { label: 'Orders', icon: <Truck size={20} />, path: '/orders', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Returns', icon: <RotateCcw size={20} />, path: '/returns', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Invoices', icon: <Receipt size={20} />, path: '/invoices', roles: ['customer', 'vendor', 'admin'] },
+      { label: 'Wallet', icon: <Wallet size={20} />, path: '/wallet', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['vendor', 'admin'] },
       { label: 'Settings', icon: <Settings size={20} />, path: '/settings', roles: ['customer', 'vendor'] },
     ],
