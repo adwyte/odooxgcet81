@@ -13,16 +13,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const GithubIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/>
-  </svg>
-);
-
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loginWithGoogle, loginWithGithub, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -30,18 +24,28 @@ export default function LoginPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(searchParams.get('error') === 'oauth_failed' ? 'OAuth login failed. Please try again.' : '');
+  const [emailError, setEmailError] = useState('');
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  const handleEmailBlur = () => {
+    if (formData.email && !validateEmail(formData.email)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailError('');
 
     if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address');
+      setEmailError('Please enter a valid email address');
       return;
     }
     
@@ -74,14 +78,6 @@ export default function LoginPage() {
           <GoogleIcon />
           <span className="font-medium text-primary-700">Continue with Google</span>
         </button>
-        <button
-          type="button"
-          onClick={loginWithGithub}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
-        >
-          <GithubIcon />
-          <span className="font-medium text-primary-700">Continue with GitHub</span>
-        </button>
       </div>
 
       <div className="relative">
@@ -106,11 +102,18 @@ export default function LoginPage() {
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="input"
+            onChange={(e) => {
+              setFormData({ ...formData, email: e.target.value });
+              if (emailError) setEmailError('');
+            }}
+            onBlur={handleEmailBlur}
+            className={`input ${emailError ? 'border-red-300' : ''}`}
             placeholder="you@example.com"
             required
           />
+          {emailError && (
+            <p className="text-sm text-red-500 mt-1">{emailError}</p>
+          )}
         </div>
 
         <div>

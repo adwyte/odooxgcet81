@@ -113,7 +113,7 @@ class AuthApi {
 
   async getCurrentUser(accessToken: string): Promise<UserResponse> {
     const response = await fetch(`${this.baseUrl}/me`, {
-      headers: { 
+      headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
@@ -124,9 +124,7 @@ class AuthApi {
     return `${this.baseUrl}/google`;
   }
 
-  getGithubAuthUrl(): string {
-    return `${this.baseUrl}/github`;
-  }
+
 }
 
 export const authApi = new AuthApi();

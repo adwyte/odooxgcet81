@@ -10,7 +10,6 @@ interface AuthContextType extends AuthState {
   verifyOtp: (email: string, otp: string) => Promise<void>;
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
   loginWithGoogle: () => void;
-  loginWithGithub: () => void;
   handleOAuthCallback: (accessToken: string, refreshToken: string) => Promise<void>;
 }
 
@@ -70,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
       const response = await authApi.login(email, password);
       handleAuthResponse(response);
@@ -82,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = useCallback(async (data: SignupData) => {
     setState(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
       const response = await authApi.register({
         first_name: data.firstName,
@@ -127,13 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = authApi.getGoogleAuthUrl();
   }, []);
 
-  const loginWithGithub = useCallback(() => {
-    window.location.href = authApi.getGithubAuthUrl();
-  }, []);
-
   const handleOAuthCallback = useCallback(async (accessToken: string, refreshToken: string) => {
     saveTokens(accessToken, refreshToken);
-    
+
     try {
       const userResponse = await authApi.getCurrentUser(accessToken);
       const user = mapApiUserToUser(userResponse);
@@ -154,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       const accessToken = localStorage.getItem('access_token');
       const refreshToken = localStorage.getItem('refresh_token');
-      
+
       if (accessToken) {
         try {
           const userResponse = await authApi.getCurrentUser(accessToken);
@@ -180,10 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      
+
       setState(prev => ({ ...prev, isLoading: false }));
     };
-    
+
     initAuth();
   }, [handleAuthResponse]);
 
@@ -198,7 +193,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyOtp,
         resetPassword,
         loginWithGoogle,
-        loginWithGithub,
         handleOAuthCallback,
       }}
     >
