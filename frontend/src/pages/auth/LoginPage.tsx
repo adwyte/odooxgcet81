@@ -53,7 +53,7 @@ export default function LoginPage() {
       await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setFormData(prev => ({ ...prev, email: '', password: '' })); // Clear fields on error
+      // Don't clear fields - let user see what they entered
       if (err instanceof Error) {
         setError(err.message);
       } else {

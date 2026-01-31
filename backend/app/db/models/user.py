@@ -51,6 +51,7 @@ class User(Base):
     gstin = Column(String, nullable=True)
 
     is_active = Column(Boolean, default=True)
+    profile_photo = Column(String, nullable=True)  # URL to profile photo
     created_at = Column(DateTime, server_default=func.now())
     
     # Referral system

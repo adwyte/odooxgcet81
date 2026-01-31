@@ -22,6 +22,7 @@ export interface UserResponse {
   gstin?: string;
   is_active: boolean;
   referral_code?: string;
+  profile_photo?: string;
 }
 
 export interface OTPResponse {

@@ -35,7 +35,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu size={24} />
           </button>
-          
+
           <div className="hidden sm:block">
             <h1 className="text-lg font-semibold text-primary-900">
               Welcome back, {user?.firstName}
@@ -72,11 +72,19 @@ export default function Header({ onMenuClick }: HeaderProps) {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 p-2 hover:bg-primary-100 rounded-lg transition-colors"
             >
-              <div className="w-8 h-8 bg-primary-200 rounded-full flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary-700">
-                  {user?.firstName?.charAt(0).toUpperCase()}
-                </span>
-              </div>
+              {user?.profilePhoto ? (
+                <img
+                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.profilePhoto}`}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-primary-200 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-semibold text-primary-700">
+                    {user?.firstName?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
               <ChevronDown size={16} className="text-primary-500 hidden sm:block" />
             </button>
 

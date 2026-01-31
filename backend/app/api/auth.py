@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Header
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -317,5 +317,68 @@ async def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+    
+    return auth_service.user_to_response(user)
+
+
+# Profile Photo Upload
+from fastapi import UploadFile, File
+import uuid
+import shutil
+from pathlib import Path
+
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+
+@router.post("/profile-photo", response_model=UserResponse)
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Upload profile photo for current user"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = authorization.split(" ")[1]
+    payload = auth_service.verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = auth_service.get_user_by_id(db, payload.get("sub"))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+    
+    # Generate unique filename
+    unique_filename = f"profile_{user.id}_{uuid.uuid4()}{file_ext}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Delete old profile photo if exists
+    if user.profile_photo:
+        old_filename = user.profile_photo.split("/")[-1]
+        old_path = UPLOAD_DIR / old_filename
+        if old_path.exists():
+            old_path.unlink()
+    
+    # Save new file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    finally:
+        file.file.close()
+    
+    # Update user profile_photo
+    user.profile_photo = f"/uploads/{unique_filename}"
+    db.commit()
+    db.refresh(user)
     
     return auth_service.user_to_response(user)

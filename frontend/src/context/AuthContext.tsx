@@ -38,6 +38,7 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   role: apiUser.role.toLowerCase() as UserRole,
   createdAt: new Date().toISOString(),
   referralCode: apiUser.referral_code,
+  profilePhoto: apiUser.profile_photo,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

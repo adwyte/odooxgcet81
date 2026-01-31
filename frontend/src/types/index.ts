@@ -12,6 +12,7 @@ export interface User {
   role: UserRole;
   createdAt: string;
   referralCode?: string;
+  profilePhoto?: string;
 }
 
 export interface AuthState {

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { 
-  User, 
-  Building2, 
-  Lock, 
-  Bell, 
+import {
+  User,
+  Building2,
+  Lock,
+  Bell,
   CreditCard,
   Save,
   Camera,
@@ -100,11 +100,10 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                    activeTab === tab.id
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeTab === tab.id
                       ? 'bg-primary-900 text-white'
                       : 'text-primary-600 hover:bg-primary-100 hover:text-primary-900'
-                  }`}
+                    }`}
                 >
                   {tab.icon}
                   <span className="font-medium">{tab.label}</span>
@@ -120,22 +119,66 @@ export default function SettingsPage() {
           {activeTab === 'profile' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Profile Information</h2>
-              
+
               {/* Avatar */}
               <div className="flex items-center gap-6 mb-6 pb-6 border-b border-primary-200">
                 <div className="relative">
-                  <div className="w-24 h-24 bg-primary-200 rounded-full flex items-center justify-center">
-                    <span className="text-3xl font-bold text-primary-700">
-                      {profileData.firstName.charAt(0)}
-                    </span>
-                  </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-800 transition-colors">
+                  {user?.profilePhoto ? (
+                    <img
+                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.profilePhoto}`}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-primary-200 rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-primary-700">
+                        {profileData.firstName.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    id="profile-photo-input"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      const formData = new FormData();
+                      formData.append('file', file);
+
+                      try {
+                        const token = localStorage.getItem('access_token');
+                        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/profile-photo`, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: formData
+                        });
+
+                        if (response.ok) {
+                          window.location.reload(); // Refresh to show new photo
+                        } else {
+                          alert('Failed to upload photo');
+                        }
+                      } catch (err) {
+                        alert('Failed to upload photo');
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => document.getElementById('profile-photo-input')?.click()}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-800 transition-colors"
+                  >
                     <Camera size={16} />
                   </button>
                 </div>
                 <div>
                   <h3 className="font-medium text-primary-900">{profileData.firstName} {profileData.lastName}</h3>
                   <p className="text-sm text-primary-500 capitalize">{user?.role}</p>
+                  <p className="text-xs text-primary-400 mt-1">Click camera icon to update photo</p>
                 </div>
               </div>
 
@@ -197,7 +240,7 @@ export default function SettingsPage() {
           {activeTab === 'company' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Company Information</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="label">Company Name</label>
@@ -281,7 +324,7 @@ export default function SettingsPage() {
           {activeTab === 'security' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Change Password</h2>
-              
+
               <div className="max-w-md space-y-6">
                 <div>
                   <label className="label">Current Password</label>
@@ -340,7 +383,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Notification Preferences</h2>
-              
+
               <div className="space-y-6">
                 <div>
                   <h3 className="font-medium text-primary-900 mb-4">Email Notifications</h3>
@@ -398,7 +441,7 @@ export default function SettingsPage() {
           {activeTab === 'rental' && user?.role !== 'customer' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Rental Configuration</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="label">Default Rental Period</label>
@@ -483,7 +526,7 @@ export default function SettingsPage() {
           {activeTab === 'billing' && (
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-primary-900 mb-6">Payment Methods</h2>
-              
+
               <div className="space-y-4 mb-6">
                 <div className="flex items-center justify-between p-4 border border-primary-200 rounded-xl">
                   <div className="flex items-center gap-4">
