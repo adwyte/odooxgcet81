@@ -56,10 +56,7 @@ class AuthApi {
     company_name?: string;
     business_category?: string;
     gstin?: string;
-<<<<<<< HEAD
     role?: 'CUSTOMER' | 'VENDOR';
-=======
->>>>>>> origin/auth_and_login
   }): Promise<TokenResponse> {
     const response = await fetch(`${this.baseUrl}/register`, {
       method: 'POST',
