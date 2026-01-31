@@ -40,6 +40,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -335,6 +336,27 @@ export default function OrderDetailPage() {
                   Pay Balance
                 </button>
               )}
+              {/* Calendar Sync - Available for confirmed orders */}
+              {order.status !== 'pending' && order.status !== 'cancelled' && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const result = await import('../../api/calendar').then(({ calendarApi }) =>
+                        calendarApi.syncOrder(order.id)
+                      );
+                      alert(`Event created! View here: ${result.link}`);
+                      window.open(result.link, '_blank');
+                    } catch (err: any) {
+                      alert(err.message || 'Failed to sync to calendar. Make sure you connected your Google Calendar in Profile.');
+                    }
+                  }}
+                  className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  <Calendar size={18} />
+                  Add to Google Calendar
+                </button>
+              )}
+
               {(user?.role === 'vendor' || user?.role === 'admin') && (
                 <>
                   {order.status === 'pending' && (
@@ -352,6 +374,7 @@ export default function OrderDetailPage() {
                       </button>
                     </>
                   )}
+
                   {order.status === 'confirmed' && (
                     <>
                       <button
@@ -372,7 +395,7 @@ export default function OrderDetailPage() {
                   )}
                   {order.status === 'picked_up' && (
                     <button
-                      onClick={() => handleStatusChange('returned')}
+                      onClick={() => setIsReturnModalOpen(true)}
                       className="btn btn-primary w-full"
                     >
                       <RotateCcw size={18} />
@@ -487,6 +510,85 @@ export default function OrderDetailPage() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Schedule Pickup
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Order Modal */}
+      {isReturnModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-primary-900 mb-4">Confirm Return</h3>
+            <p className="text-primary-500 mb-6">
+              Mark items as returned. You can add late fees if applicable. The security deposit will be refunded automatically after deducting any fees.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const lateFeeInput = document.getElementById('late-fee') as HTMLInputElement;
+                const lateFee = lateFeeInput.value ? parseFloat(lateFeeInput.value) : 0;
+
+                const returnDateInput = document.getElementById('return-date') as HTMLInputElement;
+                const returnDate = returnDateInput.value ? new Date(returnDateInput.value).toISOString() : new Date().toISOString();
+
+                await ordersApi.updateOrder(order.id, {
+                  status: 'returned',
+                  late_return_fee: lateFee,
+                  return_date: returnDate
+                });
+
+                setIsReturnModalOpen(false);
+                // Refresh order
+                const updatedOrder = await ordersApi.getOrder(order.id);
+                setOrder(updatedOrder);
+                alert("Order marked as returned and completed!");
+              } catch (err: any) {
+                alert(err.message || "Failed to mark as returned");
+              }
+            }}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="label">Return Date</label>
+                  <input
+                    type="datetime-local"
+                    id="return-date"
+                    className="input"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Late Fee (Optional)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400">₹</span>
+                    <input
+                      type="number"
+                      id="late-fee"
+                      className="input pl-8"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <p className="text-xs text-primary-500 mt-1">
+                    Security Deposit: {formatPrice(order.security_deposit || 0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReturnModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Confirm Return & Refund
                 </button>
               </div>
             </form>

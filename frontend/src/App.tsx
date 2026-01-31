@@ -36,7 +36,8 @@ import OrderPaymentPage from './pages/orders/OrderPaymentPage';
 import ReturnsPage from './pages/returns/ReturnsPage';
 import InvoicesPage from './pages/invoices/InvoicesPage';
 import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
-import ReportsPage from './pages/reports/ReportsPage';
+import CalendarCallbackPage from './pages/calendar/CalendarCallbackPage';
+import ProfilePage from './pages/profile/ProfilePage';
 import SettingsPage from './pages/settings/SettingsPage';
 import WalletPage from './pages/wallet/WalletPage';
 
@@ -86,7 +87,8 @@ export default function App() {
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/calendar/callback" element={<CalendarCallbackPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
