@@ -54,7 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false,
+    isInitializing: true,
   });
 
   const saveTokens = (accessToken: string, refreshToken: string) => {
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isAuthenticated: true,
       isLoading: false,
+      isInitializing: false,
     });
   }, []);
 
@@ -120,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitializing: false,
     });
   }, []);
 
@@ -151,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: true,
         isLoading: false,
+        isInitializing: false,
       });
     } catch (error) {
       clearTokens();
@@ -190,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             isAuthenticated: true,
             isLoading: false,
+            isInitializing: false,
           });
           return;
         } catch (error) {
@@ -207,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, isLoading: false, isInitializing: false }));
     };
 
     initAuth();
