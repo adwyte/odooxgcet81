@@ -263,8 +263,6 @@ entity_id
 timestamp
 
 
-Judges LOVE audit trails 😄
-
 🧱 Final Table Count (Hackathon-Ready)
 Category	Tables
 Auth & Users	2
