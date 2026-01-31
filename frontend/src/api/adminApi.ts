@@ -289,6 +289,80 @@ class AdminApi {
     });
     return this.handleResponse<{ message: string }>(response);
   }
+
+  // Wallet Management
+  async getWallets(search?: string): Promise<AdminWallet[]> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    const response = await fetch(`${this.baseUrl}/wallets?${params}`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<AdminWallet[]>(response);
+  }
+
+  async getWalletStats(): Promise<WalletStats> {
+    const response = await fetch(`${this.baseUrl}/wallets/stats`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<WalletStats>(response);
+  }
+
+  async getTransactions(params?: { search?: string; transaction_type?: string }): Promise<AdminTransaction[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.transaction_type) queryParams.append('transaction_type', params.transaction_type);
+    const response = await fetch(`${this.baseUrl}/transactions?${queryParams}`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<AdminTransaction[]>(response);
+  }
+
+  async adjustWallet(data: { user_id: string; amount: number; transaction_type: string; description: string }): Promise<{ message: string; new_balance: number; transaction_id: string }> {
+    const response = await fetch(`${this.baseUrl}/wallets/adjust`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse<{ message: string; new_balance: number; transaction_id: string }>(response);
+  }
+}
+
+// Additional types for wallet management
+export interface AdminWallet {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  balance: number;
+  currency: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WalletStats {
+  total_wallets: number;
+  total_balance: number;
+  total_credited: number;
+  total_debited: number;
+  active_wallets: number;
+  transactions_today: number;
+  transactions_this_month: number;
+}
+
+export interface AdminTransaction {
+  id: string;
+  wallet_id: string;
+  user_name: string;
+  user_email: string;
+  transaction_type: string;
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  status: string;
+  reference_type?: string;
+  description?: string;
+  created_at: string;
 }
 
 export const adminApi = new AdminApi();
+

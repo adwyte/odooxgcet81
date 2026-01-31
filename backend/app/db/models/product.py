@@ -23,7 +23,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True)
     name = Column(String, nullable=False)
     description = Column(Text)

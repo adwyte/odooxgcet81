@@ -206,13 +206,6 @@ export default function AdminDashboardPage() {
               <span className="font-semibold text-green-600">+{stats?.new_vendors_this_month || 0}</span>
             </div>
           </div>
-          {pendingVendors > 0 && (
-            <div className="mt-4 pt-4 border-t border-primary-100">
-              <a href="/admin/vendors" className="text-sm text-accent-600 hover:text-accent-700 font-medium">
-                Review pending vendors →
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Quick Actions */}
@@ -230,22 +223,10 @@ export default function AdminDashboardPage() {
                 <span className="text-primary-900">Manage Users</span>
               </div>
             </a>
-            <a href="/admin/vendors" className="block p-3 rounded-lg hover:bg-primary-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Building2 size={18} className="text-primary-600" />
-                <span className="text-primary-900">Manage Vendors</span>
-              </div>
-            </a>
             <a href="/admin/categories" className="block p-3 rounded-lg hover:bg-primary-50 transition-colors">
               <div className="flex items-center gap-3">
                 <Package size={18} className="text-primary-600" />
                 <span className="text-primary-900">Manage Categories</span>
-              </div>
-            </a>
-            <a href="/admin/settings" className="block p-3 rounded-lg hover:bg-primary-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <BarChart3 size={18} className="text-primary-600" />
-                <span className="text-primary-900">Platform Settings</span>
               </div>
             </a>
           </div>

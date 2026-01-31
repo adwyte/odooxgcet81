@@ -48,7 +48,7 @@ class Invoice(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     invoice_number = Column(String, unique=True)
     order_id = Column(UUID(as_uuid=True), ForeignKey("rental_orders.id"))
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     
     status = Column(Enum(InvoiceStatus), default=InvoiceStatus.DRAFT)
     

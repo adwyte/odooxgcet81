@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Package, 
-  ShoppingCart, 
-  FileText, 
-  Receipt, 
-  BarChart3, 
-  Settings, 
+import {
+  Home,
+  Package,
+  ShoppingCart,
+  FileText,
+  Receipt,
+  BarChart3,
+  Settings,
   Users,
   Truck,
   RotateCcw,
@@ -14,7 +14,6 @@ import {
   X,
   LayoutDashboard,
   FolderTree,
-  Cog,
   Wallet
 } from 'lucide-react';
 import logo from "../../assets/logo.png";
@@ -59,9 +58,8 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Admin Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin', roles: ['admin'] },
       { label: 'Users', icon: <Users size={20} />, path: '/admin/users', roles: ['admin'] },
-      { label: 'Vendors', icon: <Building2 size={20} />, path: '/admin/vendors', roles: ['admin'] },
       { label: 'Categories', icon: <FolderTree size={20} />, path: '/admin/categories', roles: ['admin'] },
-      { label: 'Platform Settings', icon: <Cog size={20} />, path: '/admin/settings', roles: ['admin'] },
+      { label: 'Transactions', icon: <Wallet size={20} />, path: '/admin/transactions', roles: ['admin'] },
     ],
     roles: ['admin'],
   },
@@ -84,7 +82,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {/* Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
@@ -92,9 +90,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-primary-200 z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-primary-200 z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -107,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               />
               <span className="text-xl font-bold text-primary-900">RentPe</span>
             </Link>
-            <button 
+            <button
               onClick={onClose}
               className="lg:hidden p-2 hover:bg-primary-100 rounded-lg"
             >
@@ -126,19 +123,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 )}
                 <ul className="space-y-1">
                   {section.items.map((item) => {
-                    const isActive = location.pathname === item.path || 
+                    const isActive = location.pathname === item.path ||
                       (item.path !== '/dashboard' && item.path !== '/admin' && location.pathname.startsWith(item.path));
-                    
+
                     return (
                       <li key={item.path}>
                         <Link
                           to={item.path}
                           onClick={onClose}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                            isActive
-                              ? 'bg-primary-900 text-white'
-                              : 'text-primary-600 hover:bg-primary-100 hover:text-primary-900'
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${isActive
+                            ? 'bg-primary-900 text-white'
+                            : 'text-primary-600 hover:bg-primary-100 hover:text-primary-900'
+                            }`}
                         >
                           {item.icon}
                           <span className="font-medium">{item.label}</span>

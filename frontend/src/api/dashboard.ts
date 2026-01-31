@@ -37,6 +37,31 @@ export interface RecentOrder {
   created_at: string;
 }
 
+export interface VendorPerformance {
+  vendor_id: string;
+  vendor_name: string;
+  total_orders: number;
+  total_revenue: number;
+  total_products: number;
+  avg_order_value: number;
+}
+
+export interface DailyStats {
+  date: string;
+  day_name: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface CategoryStats {
+  category_id: string;
+  category_name: string;
+  product_count: number;
+  order_count: number;
+  revenue: number;
+  percentage: number;
+}
+
 class DashboardApi {
   private baseUrl: string;
 
@@ -73,6 +98,48 @@ class DashboardApi {
     });
     return this.handleResponse<RecentOrder[]>(response);
   }
+
+  async getVendorPerformance(): Promise<VendorPerformance[]> {
+    const response = await fetch(`${this.baseUrl}/reports/vendor-performance`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<VendorPerformance[]>(response);
+  }
+
+  async getWeeklyStats(): Promise<DailyStats[]> {
+    const response = await fetch(`${this.baseUrl}/reports/weekly-stats`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<DailyStats[]>(response);
+  }
+
+  async getCategoryDistribution(): Promise<CategoryStats[]> {
+    const response = await fetch(`${this.baseUrl}/reports/category-distribution`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<CategoryStats[]>(response);
+  }
+
+  async exportReport(reportType: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/reports/export?report_type=${reportType}`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export report');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportType}_report.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 export const dashboardApi = new DashboardApi();
+
