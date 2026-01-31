@@ -1,13 +1,7 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    status,
-    UploadFile,
-    File
-)
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi import UploadFile, File, Header
 from pathlib import Path
 import uuid
 import shutil
@@ -25,7 +19,7 @@ from app.services import auth_service, email_service
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
-# -------------------- DB Dependency --------------------
+# Dependency to get DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -34,139 +28,295 @@ def get_db():
         db.close()
 
 
-# -------------------- Auth Routes --------------------
 @router.post("/register", response_model=TokenResponse)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user"""
     existing_user = auth_service.get_user_by_email(db, user_data.email)
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
 
+    # Validate referral code if provided
     if user_data.referral_code:
         referrer = auth_service.get_user_by_referral_code(db, user_data.referral_code)
-        if not referrer or referrer.referral_used:
-            raise HTTPException(status_code=400, detail="Invalid referral code")
+        if not referrer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid referral code"
+            )
+        if referrer.referral_used:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This referral code has already been used"
+            )
 
     user = auth_service.create_user(db, user_data)
 
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+
     return TokenResponse(
-        access_token=auth_service.create_access_token({"sub": str(user.id)}),
-        refresh_token=auth_service.create_refresh_token({"sub": str(user.id)}),
-        user=auth_service.user_to_response(user),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
     )
+
+
+@router.get("/validate-referral/{code}", response_model=ReferralCodeValidation)
+async def validate_referral_code(code: str, db: Session = Depends(get_db)):
+    """Validate a referral code"""
+    if not code or len(code) != 8:
+        return ReferralCodeValidation(valid=False, message="Invalid referral code format")
+
+    referrer = auth_service.get_user_by_referral_code(db, code.upper())
+    if not referrer:
+        return ReferralCodeValidation(valid=False, message="Invalid referral code")
+
+    if referrer.referral_used:
+        return ReferralCodeValidation(valid=False, message="This referral code has already been used")
+
+    return ReferralCodeValidation(valid=True, message="Valid! You'll get ₹500 bonus on signup")
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+    """Login with email and password"""
     user = auth_service.authenticate_user(db, credentials.email, credentials.password)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is deactivated")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
+        )
+
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
-        access_token=auth_service.create_access_token({"sub": str(user.id)}),
-        refresh_token=auth_service.create_refresh_token({"sub": str(user.id)}),
-        user=auth_service.user_to_response(user),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
     )
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
+    """Refresh access token using refresh token"""
     payload = auth_service.verify_token(token_data.refresh_token, token_type="refresh")
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
 
-    user = auth_service.get_user_by_id(db, payload["sub"])
+    user = auth_service.get_user_by_id(db, payload.get("sub"))
     if not user or not user.is_active:
-        raise HTTPException(status_code=401, detail="User inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive"
+        )
+
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
-        access_token=auth_service.create_access_token({"sub": str(user.id)}),
-        refresh_token=auth_service.create_refresh_token({"sub": str(user.id)}),
-        user=auth_service.user_to_response(user),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=auth_service.user_to_response(user)
     )
 
 
-# -------------------- OTP Password Reset --------------------
+# OTP-based Password Reset
 @router.post("/forgot-password", response_model=OTPResponse)
 async def forgot_password(request: OTPRequest, db: Session = Depends(get_db)):
+    """Send OTP to email for password reset"""
     user = auth_service.get_user_by_email(db, request.email)
-    if user:
-        otp = auth_service.store_otp(request.email)
-        email_service.send_otp_email(request.email, otp)
-        print(f"[DEBUG] OTP for {request.email}: {otp}")
+    if not user:
+        # Don't reveal if email exists for security
+        return OTPResponse(
+            message="If the email exists, an OTP has been sent",
+            expires_in_minutes=settings.OTP_EXPIRE_MINUTES
+        )
+
+    otp = auth_service.store_otp(request.email)
+
+    # Send email
+    email_service.send_otp_email(request.email, otp)
+
+    # Log for debugging (keep until smtp is verified)
+    print(f"[DEBUG] OTP for {request.email}: {otp}")
 
     return OTPResponse(
-        message="If the email exists, an OTP has been sent",
-        expires_in_minutes=settings.OTP_EXPIRE_MINUTES,
+        message="OTP sent to your email",
+        expires_in_minutes=settings.OTP_EXPIRE_MINUTES
     )
 
 
 @router.post("/verify-otp", response_model=MessageResponse)
 async def verify_otp(request: OTPVerify):
-    if not auth_service.verify_otp(request.email, request.otp, consume=False):
-        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+    """Verify OTP (used before reset password)"""
+    is_valid = auth_service.verify_otp(request.email, request.otp, consume=False)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
 
-    return MessageResponse(message="OTP verified successfully", success=True)
+    # Valid OTP - frontend can proceed to reset password screen
+    # We do NOT generate a new token here because the frontend will use the SAME OTP
+    # for the reset-password call, which will consume it.
+
+    return MessageResponse(
+        message="OTP verified successfully",
+        success=True
+    )
 
 
 @router.post("/reset-password", response_model=MessageResponse)
 async def reset_password(request: PasswordReset, db: Session = Depends(get_db)):
-    if not auth_service.verify_otp(request.email, request.otp):
-        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+    """Reset password with OTP"""
+    is_valid = auth_service.verify_otp(request.email, request.otp)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
 
     user = auth_service.get_user_by_email(db, request.email)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
     auth_service.update_user_password(db, user, request.new_password)
-    return MessageResponse(message="Password reset successfully", success=True)
+
+    return MessageResponse(
+        message="Password reset successfully",
+        success=True
+    )
 
 
-# -------------------- OAuth --------------------
+# OAuth Routes
 @router.get("/google")
 async def google_login():
+    """Redirect to Google OAuth"""
     if not settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=503, detail="Google OAuth not configured")
-    return RedirectResponse(auth_service.get_google_oauth_url())
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth is not configured"
+        )
+    auth_url = auth_service.get_google_oauth_url()
+    return RedirectResponse(url=auth_url)
 
 
 @router.get("/google/callback")
 async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback"""
     try:
         user_info = await auth_service.get_google_user_info(code)
-        user = auth_service.get_or_create_oauth_user(db, user_info, "google")
+        email = user_info.get("email")
+        given_name = user_info.get("given_name", "")
+        family_name = user_info.get("family_name", "")
 
-        return RedirectResponse(
-            f"{settings.FRONTEND_URL}/oauth/callback"
-            f"?access_token={auth_service.create_access_token({'sub': str(user.id)})}"
-            f"&refresh_token={auth_service.create_refresh_token({'sub': str(user.id)})}"
+        # Fallback if names not provided
+        if not given_name:
+            full_name = user_info.get("name", email.split("@")[0])
+            name_parts = full_name.split(" ", 1)
+            given_name = name_parts[0]
+            family_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        user = auth_service.get_user_by_email(db, email)
+        if not user:
+            user = auth_service.create_oauth_user(db, email, given_name, family_name, "google")
+
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
+        refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+
+        # Redirect to frontend with tokens
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        return RedirectResponse(url=redirect_url)
+
+    except Exception as e:
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/login?error=oauth_failed"
+        return RedirectResponse(url=redirect_url)
+
+
+@router.get("/github")
+async def github_login():
+    """Redirect to GitHub OAuth"""
+    if not settings.GITHUB_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GitHub OAuth is not configured"
         )
-    except Exception:
-        return RedirectResponse(f"{settings.FRONTEND_URL}/login?error=oauth_failed")
+    auth_url = auth_service.get_github_oauth_url()
+    return RedirectResponse(url=auth_url)
 
 
-# -------------------- Profile --------------------
+@router.get("/github/callback")
+async def github_callback(code: str, db: Session = Depends(get_db)):
+    """Handle GitHub OAuth callback"""
+    try:
+        user_info = await auth_service.get_github_user_info(code)
+        email = user_info.get("email")
+
+        if not email:
+            redirect_url = f"{settings.FRONTEND_URL}/login?error=no_email"
+            return RedirectResponse(url=redirect_url)
+
+        # Parse name from GitHub
+        full_name = user_info.get("name") or user_info.get("login", email.split("@")[0])
+        name_parts = full_name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        user = auth_service.get_user_by_email(db, email)
+        if not user:
+            user = auth_service.create_oauth_user(db, email, first_name, last_name, "github")
+
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
+        refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
+
+        # Redirect to frontend with tokens
+        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        return RedirectResponse(url=redirect_url)
+
+    except Exception as e:
+        redirect_url = f"{settings.FRONTEND_URL}/login?error=oauth_failed"
+        return RedirectResponse(url=redirect_url)
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(
-    current_user=Depends(auth_service.get_current_user),
+        current_user: UserResponse = Depends(auth_service.get_current_user)
 ):
+    """Get current authenticated user"""
     return auth_service.user_to_response(current_user)
 
 
 async def update_current_user(
-    user_update: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user=Depends(auth_service.get_current_user),
+        user_update: UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(auth_service.get_current_user)
 ):
-    updated = auth_service.update_user_profile(db, current_user, user_update)
-    return auth_service.user_to_response(updated)
+    """Update current user profile"""
+    updated_user = auth_service.update_user_profile(db, current_user, user_update)
+    return auth_service.user_to_response(updated_user)
 
-
-# -------------------- Profile Photo Upload --------------------
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 
 @router.post("/profile-photo", response_model=UserResponse)
@@ -175,15 +325,30 @@ async def upload_profile_photo(
     db: Session = Depends(get_db),
     current_user=Depends(auth_service.get_current_user),
 ):
-    ext = Path(file.filename).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Invalid file type")
+    """Upload profile photo for current user"""
 
-    filename = f"profile_{current_user.id}_{uuid.uuid4()}{ext}"
-    path = UPLOAD_DIR / filename
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
 
-    with open(path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    filename = f"profile_{current_user.id}_{uuid.uuid4()}{file_ext}"
+    file_path = UPLOAD_DIR / filename
+
+    # Remove old photo if exists
+    if current_user.profile_photo:
+        old_name = current_user.profile_photo.split("/")[-1]
+        old_path = UPLOAD_DIR / old_name
+        if old_path.exists():
+            old_path.unlink()
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    finally:
+        file.file.close()
 
     current_user.profile_photo = f"/uploads/{filename}"
     db.commit()
