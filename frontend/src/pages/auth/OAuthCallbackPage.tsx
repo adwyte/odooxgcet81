@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,9 +8,13 @@ export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const { handleOAuthCallback } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const processCallback = async () => {
+      if (processedRef.current) return;
+      processedRef.current = true;
+
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const errorParam = searchParams.get('error');

@@ -23,7 +23,7 @@ export default function VendorSignupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signup, isLoading } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -41,6 +41,8 @@ export default function VendorSignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   
   // Referral code validation state
@@ -111,6 +113,28 @@ export default function VendorSignupPage() {
     return emailRegex.test(email);
   };
 
+  const handleEmailBlur = () => {
+    if (formData.email && !validateEmail(formData.email)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const validatePhone = (phone: string) => {
+    // Required for vendor
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handlePhoneBlur = () => {
+    if (formData.phone && !validatePhone(formData.phone)) {
+      setPhoneError('Please enter a valid phone number');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const validateGSTIN = (gstin: string) => {
     if (!gstin) return true; // Optional
     const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
@@ -120,6 +144,9 @@ export default function VendorSignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    setEmailError('');
+    setPhoneError('');
 
     if (!formData.companyName.trim()) {
       setError('Company name is required for vendors');
@@ -132,7 +159,12 @@ export default function VendorSignupPage() {
     }
 
     if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address');
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePhone(formData.phone)) {
+      setPhoneError('Please enter a valid phone number');
       return;
     }
 
@@ -240,11 +272,18 @@ export default function VendorSignupPage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="input"
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (emailError) setEmailError('');
+                }}
+                onBlur={handleEmailBlur}
+                className={`input ${emailError ? 'border-red-300' : ''}`}
                 placeholder="you@company.com"
                 required
               />
+              {emailError && (
+                <p className="text-sm text-red-500 mt-1">{emailError}</p>
+              )}
             </div>
             <div>
               <label htmlFor="phone" className="label">Phone Number</label>
@@ -252,11 +291,18 @@ export default function VendorSignupPage() {
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="input"
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value });
+                  if (phoneError) setPhoneError('');
+                }}
+                onBlur={handlePhoneBlur}
+                className={`input ${phoneError ? 'border-red-300' : ''}`}
                 placeholder="+91 98765 43210"
                 required
               />
+              {phoneError && (
+                <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -264,7 +310,7 @@ export default function VendorSignupPage() {
         {/* Business Information */}
         <div className="border-b border-primary-200 pb-4">
           <h3 className="text-sm font-semibold text-primary-900 mb-3">Business Information</h3>
-          
+
           <div>
             <label htmlFor="companyName" className="label">Company / Business Name</label>
             <input
@@ -362,7 +408,7 @@ export default function VendorSignupPage() {
         {/* Password */}
         <div>
           <h3 className="text-sm font-semibold text-primary-900 mb-3">Security</h3>
-          
+
           <div>
             <label htmlFor="password" className="label">Password</label>
             <div className="relative">
@@ -383,7 +429,7 @@ export default function VendorSignupPage() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            
+
             <div className="mt-2 grid grid-cols-2 gap-1">
               {passwordRequirements.map((req) => (
                 <div key={req.label} className="flex items-center gap-2 text-xs">

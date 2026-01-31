@@ -115,7 +115,7 @@ class AuthApi {
 
   async getCurrentUser(accessToken: string): Promise<UserResponse> {
     const response = await fetch(`${this.baseUrl}/me`, {
-      headers: { 
+      headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
@@ -126,14 +126,7 @@ class AuthApi {
     return `${this.baseUrl}/google`;
   }
 
-  getGithubAuthUrl(): string {
-    return `${this.baseUrl}/github`;
-  }
 
-  async validateReferralCode(code: string): Promise<{ valid: boolean; message: string }> {
-    const response = await fetch(`${this.baseUrl}/validate-referral/${code}`);
-    return this.handleResponse<{ valid: boolean; message: string }>(response);
-  }
 }
 
 export const authApi = new AuthApi();

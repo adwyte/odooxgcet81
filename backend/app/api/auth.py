@@ -9,7 +9,7 @@ from app.schemas.auth import (
     OTPRequest, OTPVerify, PasswordReset, TokenRefresh,
     MessageResponse, OTPResponse, ReferralCodeValidation
 )
-from app.services import auth_service
+from app.services import auth_service, email_service
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -142,8 +142,10 @@ async def forgot_password(request: OTPRequest, db: Session = Depends(get_db)):
     
     otp = auth_service.store_otp(request.email)
     
-    # TODO: Send email with OTP in production
-    # For now, we'll log it (remove in production!)
+    # Send email
+    email_service.send_otp_email(request.email, otp)
+    
+    # Log for debugging (keep until smtp is verified)
     print(f"[DEBUG] OTP for {request.email}: {otp}")
     
     return OTPResponse(
@@ -233,11 +235,13 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         refresh_token = auth_service.create_refresh_token({"sub": str(user.id)})
         
         # Redirect to frontend with tokens
-        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/oauth/callback?access_token={access_token}&refresh_token={refresh_token}"
         return RedirectResponse(url=redirect_url)
     
     except Exception as e:
-        redirect_url = f"{settings.FRONTEND_URL}/login?error=oauth_failed"
+        frontend_url = "http://localhost:3000"
+        redirect_url = f"{frontend_url}/login?error=oauth_failed"
         return RedirectResponse(url=redirect_url)
 
 
