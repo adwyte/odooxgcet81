@@ -109,51 +109,7 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100">
-                            <h2 className="text-lg font-semibold text-primary-900 mb-4">Integrations</h2>
 
-                            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                                        <Calendar size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">Google Calendar</h3>
-                                        <p className="text-sm text-gray-500">Sync your rental orders to your calendar</p>
-                                    </div>
-                                </div>
-
-                                {/* 
-                           Note: user.google_refresh_token is not in the frontend User type yet, 
-                           so we won't know if connected unless we update the Type and Context.
-                           For now, we just show "Connect" or "Reconnect".
-                           Ideally, backend sends a flag 'is_google_calendar_connected'.
-                        */}
-                                {user.isCalendarConnected ? (
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full text-sm font-medium">
-                                            <span className="w-2 h-2 rounded-full bg-green-600"></span>
-                                            Connected
-                                        </div>
-                                        <button
-                                            onClick={handleConnectCalendar}
-                                            disabled={connecting}
-                                            className="text-sm text-gray-500 hover:text-primary-600 underline"
-                                        >
-                                            {connecting ? 'Connecting...' : 'Reconnect'}
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleConnectCalendar}
-                                        disabled={connecting}
-                                        className="btn btn-outline"
-                                    >
-                                        {connecting ? <Loader2 className="animate-spin" /> : 'Connect Calendar'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

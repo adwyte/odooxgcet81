@@ -49,7 +49,6 @@ const navSections: NavSection[] = [
       { label: 'Invoices', icon: <Receipt size={20} />, path: '/invoices', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Wallet', icon: <Wallet size={20} />, path: '/wallet', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['vendor', 'admin'] },
-      { label: 'Profile', icon: <Users size={20} />, path: '/profile', roles: ['customer', 'vendor', 'admin'] },
       { label: 'Settings', icon: <Settings size={20} />, path: '/settings', roles: ['customer', 'vendor'] },
     ],
     roles: ['customer', 'vendor', 'admin'],
@@ -151,7 +150,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* User Role Badge */}
           {user && (
             <div className="p-4 border-t border-primary-200">
-              <Link to="/profile" className="flex items-center gap-3 px-4 py-3 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+              <div className="flex items-center gap-3 px-4 py-3 bg-primary-50 rounded-lg">
                 <div className="w-10 h-10 bg-primary-200 rounded-full flex items-center justify-center">
                   <span className="text-sm font-semibold text-primary-700">
                     {user.firstName.charAt(0).toUpperCase()}
@@ -161,7 +160,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <p className="text-sm font-medium text-primary-900 truncate">{user.firstName} {user.lastName}</p>
                   <p className="text-xs text-primary-500 capitalize">{user.role}</p>
                 </div>
-              </Link>
+              </div>
             </div>
           )}
         </div>
