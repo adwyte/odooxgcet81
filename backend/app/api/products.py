@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
+import os
+import shutil
+from pathlib import Path
 
 from app.db import get_db
 from app.db.models.product import Product, Category
@@ -136,9 +140,58 @@ def product_to_response(product: Product) -> ProductResponse:
 
 
 # =====================
-# Category Endpoints
+# Image Upload Endpoint
 # =====================
 
+# Configure upload directory
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@router.post("/upload-image")
+async def upload_product_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a product image (vendors and admins only)"""
+    from app.db.models.user import UserRole
+    
+    if current_user.role not in [UserRole.VENDOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Only vendors and admins can upload images")
+    
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Generate unique filename
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    finally:
+        file.file.close()
+    
+    # Return URL path (will be served via static files)
+    image_url = f"/uploads/{unique_filename}"
+    
+    return {"url": image_url, "filename": unique_filename}
+
+
+# =====================
+# Category Endpoints
+# =====================
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(db: Session = Depends(get_db)):
     """Get all categories with product counts"""
