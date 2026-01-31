@@ -133,8 +133,8 @@ export default function SettingsPage() {
       await authApi.updateProfile({
         first_name: profileData.firstName,
         last_name: profileData.lastName,
-        // Add prefix back before saving
-        phone: profileData.phone ? `+91${profileData.phone}` : '',
+        // Save only 10 digit number as per requirement
+        phone: profileData.phone,
         // Use profile address for customers, company address for vendors
         address: user?.role === 'customer' ? profileData.address : companyData.address,
         city: user?.role === 'customer' ? profileData.city : companyData.city,

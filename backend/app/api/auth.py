@@ -294,61 +294,18 @@ async def github_callback(code: str, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(
-    authorization: str = None,
-    db: Session = Depends(get_db)
+    current_user: UserResponse = Depends(auth_service.get_current_user)
 ):
     """Get current authenticated user"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-    
-    token = authorization.split(" ")[1]
-    payload = auth_service.verify_token(token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    user = auth_service.get_user_by_id(db, payload.get("sub"))
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    return auth_service.user_to_response(user)
+    return auth_service.user_to_response(current_user)
 
 
 @router.put("/me", response_model=UserResponse)
 async def update_current_user(
     user_update: UserUpdate,
-    authorization: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(auth_service.get_current_user)
 ):
     """Update current user profile"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-    
-    token = authorization.split(" ")[1]
-    payload = auth_service.verify_token(token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    user = auth_service.get_user_by_id(db, payload.get("sub"))
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    updated_user = auth_service.update_user_profile(db, user, user_update)
+    updated_user = auth_service.update_user_profile(db, current_user, user_update)
     return auth_service.user_to_response(updated_user)

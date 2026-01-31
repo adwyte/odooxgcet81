@@ -88,11 +88,11 @@ def seed_users(db: Session):
             "postal_code": "560001"
         },
         {
-            "first_name": "Mohammed",
-            "last_name": "Ali",
-            "email": "ali@toolsrental.com",
+            "first_name": "Mandar",
+            "last_name": "Karmarkar",
+            "email": "mkar@toolsrental.com",
             "phone": "9876543213",
-            "company_name": "Ali Audio Visuals",
+            "company_name": "MK Audio Visuals",
             "business_category": "AV Equipment",
             "gstin": "33AABCA5678G1ZO",
             "address": "78 Tech Park",
