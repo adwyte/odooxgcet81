@@ -43,16 +43,17 @@ export default function OrdersPage() {
   const location = useLocation();
   const orderPlaced = location.state?.orderPlaced;
 
+  const queryParams = new URLSearchParams(location.search);
+  const filterParam = queryParams.get('filter');
+  const statusParam = queryParams.get('status');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>((statusParam as OrderStatus) || 'all');
   const [showFilters, setShowFilters] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(orderPlaced);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const queryParams = new URLSearchParams(location.search);
-  const filterParam = queryParams.get('filter');
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -80,7 +81,7 @@ export default function OrdersPage() {
     };
 
     fetchOrders();
-  }, [statusFilter, filterParam]);
+  }, [statusFilter, filterParam, statusParam]);
 
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||

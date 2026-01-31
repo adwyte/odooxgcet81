@@ -255,11 +255,10 @@ export default function InvoiceDetailPage() {
           <div className="card p-6">
             <h3 className="font-semibold text-primary-900 mb-4">Actions</h3>
             <div className="space-y-3">
-              <button className="btn btn-secondary w-full">
-                <Download size={18} />
-                Download PDF
-              </button>
-              <button className="btn btn-secondary w-full">
+              <button
+                onClick={() => window.print()}
+                className="btn btn-secondary w-full"
+              >
                 <Printer size={18} />
                 Print Invoice
               </button>

@@ -82,9 +82,10 @@ async def get_dashboard_stats(
         RentalOrder.status.in_([OrderStatus.PICKED_UP, OrderStatus.ACTIVE])
     ).count()
     
-    # Pending returns
+    # Pending returns (PICKED_UP and return_date <= now)
     pending_returns = orders_query.filter(
-        RentalOrder.status == OrderStatus.RETURNED
+        RentalOrder.status == OrderStatus.PICKED_UP,
+        RentalOrder.return_date <= datetime.now()
     ).count()
     
     # Total products

@@ -216,7 +216,7 @@ async def create_quotation(
             quotation_number=generate_quotation_number(),
             customer_id=current_user.id,
             vendor_id=uuid.UUID(vendor_id),
-            status=QuotationStatus.REQUESTED,
+            status=QuotationStatus.DRAFT,
             subtotal=subtotal,
             tax_rate=tax_rate,
             tax_amount=tax_amount,
@@ -271,7 +271,33 @@ async def update_quotation(
     
     if data.status is not None:
         try:
-            quotation.status = QuotationStatus(data.status.upper())
+            new_status = QuotationStatus(data.status.upper())
+            quotation.status = new_status
+            
+            # Send email to customer if status is SENT
+            if new_status == QuotationStatus.SENT and quotation.customer:
+                try:
+                    from app.services.email_service import send_email
+                    
+                    subject = f"New Quotation Received - {quotation.quotation_number}"
+                    html_content = f"""
+                    <html>
+                        <body>
+                            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                                <h2>You have received a new quotation!</h2>
+                                <p>Hi {quotation.customer.first_name},</p>
+                                <p>Vendor has submitted a quotation for your request.</p>
+                                <p><strong>Quotation Number:</strong> {quotation.quotation_number}</p>
+                                <p><strong>Amount:</strong> ₹{quotation.total_amount}</p>
+                                <p>Please login to your dashboard to review and accept/reject this quotation.</p>
+                            </div>
+                        </body>
+                    </html>
+                    """
+                    send_email(quotation.customer.email, subject, html_content)
+                except Exception as e:
+                    print(f"Failed to send quotation email: {e}")
+
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid status")
     

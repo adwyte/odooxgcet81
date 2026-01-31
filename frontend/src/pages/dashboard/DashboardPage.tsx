@@ -104,7 +104,7 @@ export default function DashboardPage() {
       changeType: 'negative',
       icon: <Clock size={24} />,
       roles: ['customer', 'vendor', 'admin'],
-      link: '/orders?filter=approaching',
+      link: '/returns?filter=pending',
     },
     {
       title: 'Total Products',

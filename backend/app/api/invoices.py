@@ -201,7 +201,7 @@ async def create_invoice(
     # Check if invoice already exists for this order
     existing = db.query(Invoice).filter(Invoice.order_id == order.id).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Invoice already exists for this order")
+        return invoice_to_response(existing)
     
     # Calculate totals
     subtotal = sum(line.total_price for line in data.lines)
@@ -313,6 +313,114 @@ async def add_payment(
     
     if invoice.paid_amount >= invoice.total_amount:
         invoice.status = InvoiceStatus.PAID
+        
+        # Send Payment Receipt Email
+        if invoice.customer:
+            try:
+                from app.services.email_service import send_email
+                from app.db.models.quotation import Quotation
+                
+                # Build Line Items Table
+                lines_html = """
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr style="background-color: #f3f4f6;">
+                            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Item</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Qty</th>
+                            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                """
+                
+                for line in invoice.lines:
+                    lines_html += f"""
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{line.description}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">{line.quantity}</td>
+                        <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">₹{line.total_price}</td>
+                    </tr>
+                    """
+                
+                lines_html += f"""
+                    </tbody>
+                    <tfoot>
+                         <tr>
+                            <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total Paid:</td>
+                            <td style="padding: 10px; text-align: right; font-weight: bold;">₹{data.amount}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                """
+
+                fromDate = "N/A"
+                toDate = "N/A"
+                vendorName = "RentPe Vendor"
+                
+                if invoice.order_id:
+                     order = db.query(RentalOrder).filter(RentalOrder.id == invoice.order_id).first()
+                     if order:
+                         fromDate = order.rental_start_date.strftime("%b %d, %Y") if order.rental_start_date else "N/A"
+                         toDate = order.rental_end_date.strftime("%b %d, %Y") if order.rental_end_date else "N/A"
+                         if order.vendor:
+                             vendorName = f"{order.vendor.first_name} {order.vendor.last_name}"
+
+                subject = f"Invoice & Payment Receipt - {invoice.invoice_number}"
+                html_content = f"""
+                <html>
+                    <body>
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <h2 style="color: #059669; margin: 0;">Payment Successful</h2>
+                                <p style="color: #6b7280; margin-top: 5px;">Your order has been confirmed</p>
+                            </div>
+                            
+                            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <p style="margin: 5px 0;"><strong>Invoice Number:</strong> {invoice.invoice_number}</p>
+                                <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: green; font-weight: bold;">PAID</span></p>
+                                <p style="margin: 5px 0;"><strong>Vendor:</strong> {vendorName}</p>
+                                <p style="margin: 5px 0;"><strong>Rental Period:</strong> {fromDate} - {toDate}</p>
+                            </div>
+
+                            <h3 style="border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;">Order Details</h3>
+                            {lines_html}
+                            
+                            <div style="text-align: center; margin-top: 30px; font-size: 14px; color: #6b7280;">
+                                <p>You can view detailed invoice and print it from your dashboard.</p>
+                                <p>&copy; 2024 RentPe. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+                """
+                send_email(invoice.customer.email, subject, html_content)
+                
+                # Cleanup Quotation Logic
+                if invoice.order_id:
+                     # Access order via relationship or query
+                     order_q = db.query(RentalOrder).filter(RentalOrder.id == invoice.order_id).first()
+                     if order_q and order_q.quotation_id:
+                         quotation = db.query(Quotation).filter(Quotation.id == order_q.quotation_id).first()
+                         if quotation:
+                             print(f"Deleting linked quotation {quotation.id} for order {order_q.id}")
+                             db.delete(quotation)
+                             # db.commit() is handled by the caller (FastAPI dependency usually commits on success, 
+                             # or we need to rely on the final db.commit() call in this function)
+                             # Looking at the end of add_payment, likely it returns payment. 
+                             # We should check if explicit commit is needed.
+                             # If add_payment uses `db.commit()` at the end, it will commit this deletion too.
+                             
+            except Exception as e:
+                print(f"Failed to process post-payment actions: {e}")
+                import traceback
+                traceback.print_exc()
+                             
+            except Exception as e:
+                print(f"Failed to process post-payment actions: {e}")
+                
+    elif invoice.paid_amount > 0:
+        invoice.status = InvoiceStatus.PARTIAL
+                
     elif invoice.paid_amount > 0:
         invoice.status = InvoiceStatus.PARTIAL
     

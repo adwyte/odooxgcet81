@@ -71,3 +71,40 @@ def send_otp_email(to_email: str, otp: str):
     except Exception as e:
         print(f"[ERROR] Failed to send email to {to_email}: {str(e)}")
         return False
+
+
+def send_email(to_email: str, subject: str, html_content: str):
+    """
+    Generic function to send HTML email.
+    """
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        print(f"[WARNING] SMTP credentials not set. Mocking email to {to_email} with subject: {subject}")
+        return True
+        
+    sender_email = settings.SMTP_USER.replace(" ", "") if settings.SMTP_USER else None
+    password = settings.SMTP_PASSWORD.replace(" ", "") if settings.SMTP_PASSWORD else None
+    smtp_server = settings.SMTP_HOST or "smtp.gmail.com"
+    smtp_port = settings.SMTP_PORT or 587
+    
+    message = MIMEMultipart("alternative")
+    message["Subject"] = subject
+    message["From"] = sender_email
+    message["To"] = to_email
+    
+    part = MIMEText(html_content, "html")
+    message.attach(part)
+    
+    try:
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, to_email, message.as_string())
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(sender_email, password)
+                server.sendmail(sender_email, to_email, message.as_string())
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to send email to {to_email}: {str(e)}")
+        return False
