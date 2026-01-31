@@ -46,6 +46,7 @@ export interface UserResponse {
   country?: string;
   profile_photo?: string;
   phone_number?: string;
+  is_calendar_connected?: boolean;
 }
 
 export interface OTPResponse {

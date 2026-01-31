@@ -331,10 +331,10 @@ export default function OrderDetailPage() {
                   View Invoice
                 </Link>
               )}
-              {user?.role === 'customer' && (order.paid_amount || 0) < (order.total_amount || 0) && (
-                <button className="btn btn-primary w-full">
+              {user?.role === 'customer' && ((order.total_amount || 0) - (order.paid_amount || 0) > 1) && (
+                <Link to={`/orders/${order.id}/pay`} className="btn btn-primary w-full text-center">
                   Pay Balance
-                </button>
+                </Link>
               )}
               {/* Calendar Sync - Available for confirmed orders */}
               {order.status !== 'pending' && order.status !== 'cancelled' && (
@@ -344,8 +344,14 @@ export default function OrderDetailPage() {
                       const result = await import('../../api/calendar').then(({ calendarApi }) =>
                         calendarApi.syncOrder(order.id)
                       );
-                      alert(`Event created! View here: ${result.link}`);
-                      window.open(result.link, '_blank');
+
+                      if (result.links && result.links.length > 0) {
+                        alert(`Events created! Opening separate tabs for Pickup and Return events.`);
+                        result.links.forEach(link => window.open(link, '_blank'));
+                      } else if (result.link) {
+                        alert(`Event created! View here: ${result.link}`);
+                        window.open(result.link, '_blank');
+                      }
                     } catch (err: any) {
                       alert(err.message || 'Failed to sync to calendar. Make sure you connected your Google Calendar in Profile.');
                     }

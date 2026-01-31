@@ -4,9 +4,9 @@ import logo from "../../assets/logo.png";
 import { useAuth } from '../../context/AuthContext';
 
 export default function AuthLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
 
-  if (isLoading) {
+  if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-900 rounded-full animate-spin" />
@@ -32,16 +32,16 @@ export default function AuthLayout() {
             <span className="text-2xl font-bold text-white">RentPe</span>
           </Link>
         </div>
-        
+
         <div className="space-y-6">
           <h1 className="text-4xl font-bold text-white leading-tight">
             Simplify Your<br />Rental Business
           </h1>
           <p className="text-lg text-primary-300">
-            Manage quotations, orders, inventory, and invoicing all in one place. 
+            Manage quotations, orders, inventory, and invoicing all in one place.
             Built for modern rental businesses.
           </p>
-          
+
           <div className="grid grid-cols-2 gap-4 pt-6">
             <div className="bg-white/10 rounded-xl p-4">
               <p className="text-3xl font-bold text-white">500+</p>
