@@ -25,9 +25,11 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import ProductsPage from './pages/products/ProductsPage';
 import ProductDetailPage from './pages/products/ProductDetailPage';
 import NewProductPage from './pages/products/NewProductPage';
+import EditProductPage from './pages/products/EditProductPage';
 import CartPage from './pages/cart/CartPage';
 import CheckoutPage from './pages/cart/CheckoutPage';
 import QuotationsPage from './pages/quotations/QuotationsPage';
+import QuotationDetailPage from './pages/quotations/QuotationDetailPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import ReturnsPage from './pages/returns/ReturnsPage';
@@ -72,9 +74,11 @@ export default function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/new" element={<NewProductPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/products/:id/edit" element={<EditProductPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/quotations" element={<QuotationsPage />} />
+              <Route path="/quotations/:id" element={<QuotationDetailPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/returns" element={<ReturnsPage />} />

@@ -16,7 +16,7 @@ export default function NewProductPage() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [isRentable, setIsRentable] = useState(true);
-  const [isPublished, setIsPublished] = useState(false);
+  const [isPublished, setIsPublished] = useState(true);
   const [quantityOnHand, setQuantityOnHand] = useState(1);
   const [costPrice, setCostPrice] = useState(0);
   const [salesPrice, setSalesPrice] = useState(0);
