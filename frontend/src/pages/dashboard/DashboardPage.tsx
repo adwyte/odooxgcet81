@@ -236,31 +236,33 @@ export default function DashboardPage() {
       )}
 
       {/* Grid for Split Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
         {/* Top Product - Flexible Height */}
-        <div className="card p-6 h-full">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-primary-900">Top Rental Products</h2>
-            <BarChart3 size={20} className="text-primary-400" />
+        <div className="card p-5 h-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-primary-900">Top Rental Products</h2>
+            <BarChart3 size={18} className="text-primary-400" />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {(stats?.top_products || []).map((product, index) => (
-              <div key={product.name} className="flex items-center gap-4">
-                <span className="w-8 h-8 bg-primary-900 text-white rounded-lg flex items-center justify-center text-sm font-bold">
+              <div key={product.name} className="flex items-center gap-3">
+                <span className="w-6 h-6 bg-primary-900 text-white rounded-md flex items-center justify-center text-xs font-bold shadow-sm">
                   {index + 1}
                 </span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-primary-900">{product.name}</p>
-                  <div className="w-full bg-primary-100 rounded-full h-1.5 mt-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <p className="text-sm font-medium text-primary-900 truncate pr-2">{product.name}</p>
+                    <span className="text-xs font-bold text-primary-900 whitespace-nowrap">{product.rentals}</span>
+                  </div>
+                  <div className="w-full bg-primary-100 rounded-full h-1">
                     <div
-                      className="bg-primary-900 h-1.5 rounded-full"
+                      className="bg-primary-900 h-1 rounded-full"
                       style={{ width: `${Math.min((product.rentals / 20) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-sm font-bold text-primary-900">{product.rentals}</span>
               </div>
             ))}
             {(stats?.top_products || []).length === 0 && (
@@ -271,54 +273,54 @@ export default function DashboardPage() {
 
         {/* Orders by Status */}
         {user?.role === 'customer' ? (
-          <div className="card p-6 h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-primary-900">My Rental Status</h2>
+          <div className="card p-5 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-primary-900">My Rental Status</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {(stats?.orders_by_status || []).map((item) => {
                 const icons: Record<string, React.ReactNode> = {
-                  'Completed': <CheckCircle size={20} />,
-                  'Returned': <RotateCcw size={20} />,
-                  'Picked Up': <Package size={20} />,
-                  'Confirmed': <Calendar size={20} />,
-                  'Pending': <Clock size={20} />,
-                  'Cancelled': <AlertTriangle size={20} />,
+                  'Completed': <CheckCircle size={18} />,
+                  'Returned': <RotateCcw size={18} />,
+                  'Picked Up': <Package size={18} />,
+                  'Confirmed': <Calendar size={18} />,
+                  'Pending': <Clock size={18} />,
+                  'Cancelled': <AlertTriangle size={18} />,
                 };
                 // Map status to readable format if needed, assuming backend sends Camel/Pascal or formatted
                 const statusKey = item.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
                 return (
-                  <div key={item.status} className="border border-primary-100 rounded-xl p-4 hover:border-primary-300 transition-colors flex flex-col items-center justify-center text-center group">
-                    <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 mb-3 group-hover:bg-primary-900 group-hover:text-white transition-colors">
-                      {icons[statusKey] || <Activity size={20} />}
+                  <div key={item.status} className="border border-primary-100 rounded-lg p-3 hover:border-primary-900/20 hover:bg-primary-50/50 transition-all flex flex-col items-center justify-center text-center">
+                    <div className="text-primary-400 mb-1">
+                      {icons[statusKey] || <Activity size={18} />}
                     </div>
-                    <p className="text-3xl font-bold text-primary-900">{item.count}</p>
-                    <p className="text-xs font-medium uppercase tracking-wider text-primary-500 mt-1">{statusKey}</p>
+                    <p className="text-xl font-bold text-primary-900 leading-tight">{item.count}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-500 mt-0.5 truncate w-full">{statusKey}</p>
                   </div>
                 );
               })}
             </div>
           </div>
         ) : (
-          <div className="card p-6 h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-primary-900">Orders by Status</h2>
+          <div className="card p-5 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-primary-900">Orders by Status</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {(stats?.orders_by_status || []).map((item) => {
                 const total = (stats?.orders_by_status || []).reduce((acc, i) => acc + i.count, 0);
                 const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
 
                 return (
-                  <div key={item.status} className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
+                  <div key={item.status} className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="font-medium text-primary-700 capitalize">{item.status.replace('_', ' ').toLowerCase()}</span>
                       <span className="font-bold text-primary-900">{item.count}</span>
                     </div>
-                    <div className="w-full bg-primary-100 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-primary-100 rounded-full h-1.5 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-primary-900"
                         style={{ width: `${percentage}%` }}
@@ -334,11 +336,11 @@ export default function DashboardPage() {
 
       {/* Recent Orders */}
       <div className="card overflow-hidden">
-        <div className="p-6 border-b border-primary-100 bg-primary-50/30">
+        <div className="px-5 py-4 border-b border-primary-100 bg-primary-50/30">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary-900">Recent Orders</h2>
-            <a href="/orders" className="btn btn-sm btn-outline bg-white">
-              View All Orders
+            <h2 className="text-base font-semibold text-primary-900">Recent Orders</h2>
+            <a href="/orders" className="text-xs font-semibold text-primary-600 hover:text-primary-900 transition-colors">
+              View All Orders →
             </a>
           </div>
         </div>
@@ -346,59 +348,54 @@ export default function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-primary-100">
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-primary-500 px-6 py-4">Order Details</th>
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-primary-500 px-6 py-4">Customer</th>
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-primary-500 px-6 py-4">Duration</th>
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-primary-500 px-6 py-4">Amount</th>
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-primary-500 px-6 py-4">Status</th>
+              <tr className="border-b border-primary-100 bg-white">
+                <th className="text-left text-[11px] font-bold uppercase tracking-wider text-primary-400 px-5 py-3">Details</th>
+                <th className="text-left text-[11px] font-bold uppercase tracking-wider text-primary-400 px-5 py-3">Customer</th>
+                <th className="text-left text-[11px] font-bold uppercase tracking-wider text-primary-400 px-5 py-3">Period</th>
+                <th className="text-left text-[11px] font-bold uppercase tracking-wider text-primary-400 px-5 py-3">Amount</th>
+                <th className="text-left text-[11px] font-bold uppercase tracking-wider text-primary-400 px-5 py-3">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary-50">
               {recentOrders.length > 0 ? (
                 recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-primary-50/50 transition-colors group">
-                    <td className="px-6 py-4">
+                  <tr key={order.id} className="hover:bg-primary-50/50 transition-colors group text-sm">
+                    <td className="px-5 py-3">
                       <a href={`/orders/${order.id}`} className="block">
-                        <span className="text-sm font-bold text-primary-900 group-hover:text-primary-700 transition-colors">
+                        <span className="font-bold text-primary-900 group-hover:text-primary-700 transition-colors">
                           {order.order_number}
                         </span>
-                        <span className="text-xs text-primary-400 block mt-0.5">
-                          {format(new Date(order.created_at), 'MMM d, yyyy')}
+                        <span className="text-xs text-primary-400 block">
+                          {format(new Date(order.created_at), 'MMM d')}
                         </span>
                       </a>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-primary-700">
+                    <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700">
+                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-[10px] font-bold text-primary-700">
                           {(order.customer_name || 'U').charAt(0)}
                         </div>
-                        {order.customer_name || 'N/A'}
+                        <span className="text-primary-700 font-medium text-xs">{order.customer_name || 'N/A'}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-primary-600">
+                    <td className="px-5 py-3 text-primary-600 text-xs">
                       {order.rental_start_date && order.rental_end_date ? (
-                        <div className="flex flex-col">
-                          <span className="font-medium text-primary-900">
-                            {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d')}
-                          </span>
-                          <span className="text-xs text-primary-400">
-                            {format(new Date(order.rental_end_date), 'yyyy')}
-                          </span>
-                        </div>
+                        <span className="font-medium text-primary-700">
+                          {format(new Date(order.rental_start_date), 'MMM d')} - {format(new Date(order.rental_end_date), 'MMM d')}
+                        </span>
                       ) : (
                         <span className="text-primary-400">N/A</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-primary-900">
+                    <td className="px-5 py-3 font-bold text-primary-900 text-sm">
                       {formatPrice(order.total_amount)}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                        ${order.status === 'completed' || order.status === 'returned' ? 'bg-green-100 text-green-800' :
-                          order.status === 'picked_up' ? 'bg-blue-100 text-blue-800' :
-                            order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide
+                        ${order.status === 'completed' || order.status === 'returned' ? 'text-green-700 bg-green-50 border border-green-100' :
+                          order.status === 'picked_up' ? 'text-blue-700 bg-blue-50 border border-blue-100' :
+                            order.status === 'confirmed' ? 'text-blue-700 bg-blue-50 border border-blue-100' :
+                              order.status === 'pending' ? 'text-yellow-700 bg-yellow-50 border border-yellow-100' : 'text-red-700 bg-red-50 border border-red-100'}
                       `}>
                         {order.status.replace('_', ' ')}
                       </span>
@@ -407,11 +404,8 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-primary-500">
-                    <div className="flex flex-col items-center justify-center">
-                      <ShoppingCart size={32} className="text-primary-200 mb-2" />
-                      <p>No orders found recentlly</p>
-                    </div>
+                  <td colSpan={5} className="px-5 py-8 text-center text-primary-500 text-sm">
+                    No recent orders
                   </td>
                 </tr>
               )}
