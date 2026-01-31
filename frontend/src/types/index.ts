@@ -20,6 +20,7 @@ export interface User {
   country?: string;
   profilePhoto?: string;
   phoneNumber?: string;
+  isCalendarConnected?: boolean;
 }
 
 export interface AuthState {

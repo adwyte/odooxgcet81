@@ -343,7 +343,7 @@ def user_to_response(user: User) -> UserResponse:
         is_active=user.is_active,
         referral_code=user.referral_code,
         profile_photo=user.profile_photo,
-
+        is_calendar_connected=bool(user.google_refresh_token),
     )
 
 

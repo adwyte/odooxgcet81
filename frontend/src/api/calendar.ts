@@ -39,13 +39,13 @@ class CalendarApi {
         return this.handleResponse<{ message: string }>(response);
     }
 
-    async syncOrder(orderId: string): Promise<{ message: string; link: string }> {
+    async syncOrder(orderId: string): Promise<{ message: string; link?: string; links?: string[] }> {
         const response = await fetch(`${this.baseUrl}/sync-order`, {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({ order_id: orderId })
         });
-        return this.handleResponse<{ message: string; link: string }>(response);
+        return this.handleResponse<{ message: string; link?: string; links?: string[] }>(response);
     }
 }
 

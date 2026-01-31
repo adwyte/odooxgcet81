@@ -14,6 +14,7 @@ interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<void>;
 }
 
+
 interface SignupData {
   firstName: string;
   lastName: string;
@@ -48,6 +49,7 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   country: apiUser.country,
   profilePhoto: apiUser.profile_photo,
   phoneNumber: apiUser.phone_number,
+  isCalendarConnected: apiUser.is_calendar_connected,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

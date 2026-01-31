@@ -158,18 +158,9 @@ export default function OrderPaymentPage() {
     const isFullyPaid = amountDue <= 0;
 
     if (isFullyPaid) {
-        return (
-            <div className="max-w-md mx-auto mt-12 p-8 bg-green-50 border border-green-200 rounded-xl text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-green-800 mb-2">Payment Complete!</h2>
-                <p className="text-green-700 mb-6">This order has already been paid for.</p>
-                <button onClick={() => navigate(`/orders/${id}`)} className="btn btn-primary w-full">
-                    View Order Details
-                </button>
-            </div>
-        );
+        // Redundant page check: if fully paid, just go back to order
+        navigate(`/orders/${id}`, { replace: true });
+        return null;
     }
 
     return (
@@ -229,8 +220,8 @@ export default function OrderPaymentPage() {
                                 onClick={() => setPaymentMethod('wallet')}
                                 disabled={walletBalance < amountDue}
                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all ${paymentMethod === 'wallet'
-                                        ? 'border-accent-600 bg-accent-50 shadow-sm'
-                                        : 'border-primary-100 hover:border-primary-200'
+                                    ? 'border-accent-600 bg-accent-50 shadow-sm'
+                                    : 'border-primary-100 hover:border-primary-200'
                                     } ${walletBalance < amountDue ? 'opacity-60 cursor-not-allowed' : ''}`}
                             >
                                 <div className="flex items-center justify-between">

@@ -129,13 +129,29 @@ export default function ProfilePage() {
                            For now, we just show "Connect" or "Reconnect".
                            Ideally, backend sends a flag 'is_google_calendar_connected'.
                         */}
-                                <button
-                                    onClick={handleConnectCalendar}
-                                    disabled={connecting}
-                                    className="btn btn-outline"
-                                >
-                                    {connecting ? <Loader2 className="animate-spin" /> : 'Connect / Reconnect'}
-                                </button>
+                                {user.isCalendarConnected ? (
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full text-sm font-medium">
+                                            <span className="w-2 h-2 rounded-full bg-green-600"></span>
+                                            Connected
+                                        </div>
+                                        <button
+                                            onClick={handleConnectCalendar}
+                                            disabled={connecting}
+                                            className="text-sm text-gray-500 hover:text-primary-600 underline"
+                                        >
+                                            {connecting ? 'Connecting...' : 'Reconnect'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleConnectCalendar}
+                                        disabled={connecting}
+                                        className="btn btn-outline"
+                                    >
+                                        {connecting ? <Loader2 className="animate-spin" /> : 'Connect Calendar'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

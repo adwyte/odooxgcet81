@@ -269,14 +269,14 @@ export default function InvoiceDetailPage() {
                   Send to Customer
                 </button>
               )}
-              {user?.role === 'customer' && invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+              {user?.role === 'customer' && invoice.status !== 'cancelled' && ((invoice.total_amount || 0) - (invoice.paid_amount || 0) > 1) && (
                 <div className="space-y-3">
                   <button
                     onClick={handleWalletPay}
                     disabled={paying || walletBalance < ((invoice.total_amount || 0) - (invoice.paid_amount || 0))}
                     className={`btn w-full flex-col items-start p-4 ${walletBalance >= ((invoice.total_amount || 0) - (invoice.paid_amount || 0))
-                        ? 'bg-primary-900 text-white hover:bg-primary-800'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      ? 'bg-primary-900 text-white hover:bg-primary-800'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
