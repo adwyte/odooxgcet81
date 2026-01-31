@@ -300,6 +300,7 @@ async def get_current_user(
     return auth_service.user_to_response(current_user)
 
 
+@router.put("/me", response_model=UserResponse)
 async def update_current_user(
         user_update: UserUpdate,
         db: Session = Depends(get_db),
