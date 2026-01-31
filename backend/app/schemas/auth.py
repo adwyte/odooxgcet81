@@ -22,6 +22,7 @@ class UserCreate(BaseModel):
     business_category: Optional[str] = None
     gstin: Optional[str] = None
     role: SignupRole = SignupRole.CUSTOMER
+    referral_code: Optional[str] = None  # Referral code from another user
     
     @field_validator('role', mode='before')
     @classmethod
@@ -66,6 +67,7 @@ class UserResponse(BaseModel):
     business_category: Optional[str] = None
     gstin: Optional[str] = None
     is_active: bool = True
+    referral_code: Optional[str] = None  # User's own referral code
 
     class Config:
         from_attributes = True

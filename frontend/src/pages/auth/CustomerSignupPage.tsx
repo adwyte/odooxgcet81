@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Check, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, ArrowRight, Check, ArrowLeft, Gift } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CustomerSignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signup, loginWithGoogle, loginWithGithub, isLoading } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -14,10 +15,19 @@ export default function CustomerSignupPage() {
     phone: '',
     password: '',
     confirmPassword: '',
+    referralCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setFormData(prev => ({ ...prev, referralCode: refCode }));
+    }
+  }, [searchParams]);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', met: formData.password.length >= 8 },
@@ -64,6 +74,7 @@ export default function CustomerSignupPage() {
         email: formData.email,
         password: formData.password,
         role: 'customer',
+        referralCode: formData.referralCode || undefined,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -239,6 +250,30 @@ export default function CustomerSignupPage() {
           />
           {formData.confirmPassword && formData.password !== formData.confirmPassword && (
             <p className="text-sm text-red-500 mt-1">Passwords do not match</p>
+          )}
+        </div>
+
+        {/* Referral Code */}
+        <div>
+          <label htmlFor="referralCode" className="label">
+            <div className="flex items-center gap-2">
+              <Gift size={16} className="text-accent-600" />
+              Referral Code <span className="text-primary-400">(Optional)</span>
+            </div>
+          </label>
+          <input
+            id="referralCode"
+            type="text"
+            value={formData.referralCode}
+            onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+            className="input"
+            placeholder="Enter referral code to get ₹500 bonus"
+            maxLength={8}
+          />
+          {formData.referralCode && (
+            <p className="text-sm text-green-600 mt-1">
+              🎉 You'll get ₹500 in your wallet on signup!
+            </p>
           )}
         </div>
 

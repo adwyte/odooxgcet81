@@ -21,6 +21,7 @@ export interface UserResponse {
   business_category?: string;
   gstin?: string;
   is_active: boolean;
+  referral_code?: string;
 }
 
 export interface OTPResponse {
@@ -57,6 +58,7 @@ class AuthApi {
     business_category?: string;
     gstin?: string;
     role?: 'CUSTOMER' | 'VENDOR';
+    referral_code?: string;
   }): Promise<TokenResponse> {
     const response = await fetch(`${this.baseUrl}/register`, {
       method: 'POST',

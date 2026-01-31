@@ -33,6 +33,20 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Validate referral code if provided
+    if user_data.referral_code:
+        referrer = auth_service.get_user_by_referral_code(db, user_data.referral_code)
+        if not referrer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid referral code"
+            )
+        if referrer.referral_used:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This referral code has already been used"
+            )
+    
     user = auth_service.create_user(db, user_data)
     
     access_token = auth_service.create_access_token({"sub": str(user.id)})

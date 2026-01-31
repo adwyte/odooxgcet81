@@ -14,7 +14,11 @@ import {
   RefreshCw,
   TrendingUp,
   TrendingDown,
-  X
+  X,
+  Gift,
+  Copy,
+  Share2,
+  Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { walletApi, WalletSummary, WalletTransaction, AddFundsRequest } from '../../api/wallet';
@@ -36,6 +40,7 @@ export default function WalletPage() {
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [copiedReferral, setCopiedReferral] = useState(false);
 
   useEffect(() => {
     fetchWalletData();
@@ -226,6 +231,78 @@ export default function WalletPage() {
           </div>
         </div>
       </div>
+
+      {/* Referral Code Section */}
+      {user?.referralCode && (
+        <div className="bg-white rounded-xl border border-primary-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-accent-100 rounded-xl">
+              <Gift className="w-6 h-6 text-accent-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-primary-900">Refer & Earn</h2>
+              <p className="text-sm text-primary-500">Share your code and earn rewards</p>
+            </div>
+          </div>
+
+          <div className="bg-primary-50 rounded-xl p-4 mb-4">
+            <p className="text-sm text-primary-600 mb-2">Your Referral Code</p>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold text-primary-900 tracking-wider">
+                {user.referralCode}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(user.referralCode || '');
+                  setCopiedReferral(true);
+                  setTimeout(() => setCopiedReferral(false), 2000);
+                }}
+                className="p-2 rounded-lg bg-white border border-primary-200 hover:bg-primary-100 transition-colors"
+                title="Copy code"
+              >
+                {copiedReferral ? (
+                  <Check className="w-5 h-5 text-green-600" />
+                ) : (
+                  <Copy className="w-5 h-5 text-primary-600" />
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  const signupUrl = `${window.location.origin}/signup/customer?ref=${user.referralCode}`;
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'Join using my referral code!',
+                      text: `Sign up and get ₹500 bonus! Use my referral code: ${user.referralCode}`,
+                      url: signupUrl,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(signupUrl);
+                    setCopiedReferral(true);
+                    setTimeout(() => setCopiedReferral(false), 2000);
+                  }
+                }}
+                className="p-2 rounded-lg bg-white border border-primary-200 hover:bg-primary-100 transition-colors"
+                title="Share referral link"
+              >
+                <Share2 className="w-5 h-5 text-primary-600" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <p className="text-sm text-green-700 font-medium">Your friend gets</p>
+              <p className="text-xl font-bold text-green-600">₹500</p>
+              <p className="text-xs text-green-600 mt-1">Added to their wallet on signup</p>
+            </div>
+            <div className="bg-accent-50 rounded-xl p-4 border border-accent-200">
+              <p className="text-sm text-accent-700 font-medium">You get</p>
+              <p className="text-xl font-bold text-accent-600">₹250</p>
+              <p className="text-xs text-accent-600 mt-1">When they sign up using your code</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Transactions */}
       <div className="bg-white rounded-xl border border-primary-200 overflow-hidden">

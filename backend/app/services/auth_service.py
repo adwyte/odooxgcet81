@@ -11,8 +11,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
-from app.db.models.user import User, UserRole
+from app.db.models.user import User, UserRole, generate_referral_code
 from app.schemas.auth import UserCreate, UserResponse
+
+# Referral bonus amounts
+REFERRAL_BONUS_NEW_USER = 500.0  # New user gets ₹500
+REFERRAL_BONUS_REFERRER = 250.0  # Referrer gets ₹250
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -89,11 +93,70 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
 
+def get_user_by_referral_code(db: Session, referral_code: str) -> Optional[User]:
+    """Find user by their referral code"""
+    return db.query(User).filter(User.referral_code == referral_code).first()
+
+
+def create_wallet_for_user(db: Session, user_id: str, initial_balance: float = 0.0):
+    """Create a wallet for a user with optional initial balance"""
+    from app.db.models.wallet import Wallet, WalletTransaction, TransactionType, TransactionStatus
+    
+    wallet = Wallet(
+        user_id=user_id,
+        balance=initial_balance
+    )
+    db.add(wallet)
+    db.flush()
+    
+    if initial_balance > 0:
+        # Record the initial credit transaction
+        transaction = WalletTransaction(
+            wallet_id=wallet.id,
+            amount=initial_balance,
+            transaction_type=TransactionType.CREDIT,
+            status=TransactionStatus.COMPLETED,
+            description="Referral signup bonus"
+        )
+        db.add(transaction)
+    
+    return wallet
+
+
+def add_referral_bonus(db: Session, user_id: str, amount: float, description: str):
+    """Add referral bonus to an existing user's wallet"""
+    from app.db.models.wallet import Wallet, WalletTransaction, TransactionType, TransactionStatus
+    
+    wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+    if wallet:
+        wallet.balance += amount
+        transaction = WalletTransaction(
+            wallet_id=wallet.id,
+            amount=amount,
+            transaction_type=TransactionType.CREDIT,
+            status=TransactionStatus.COMPLETED,
+            description=description
+        )
+        db.add(transaction)
+
+
 def create_user(db: Session, user_data: UserCreate) -> User:
     hashed_password = get_password_hash(user_data.password)
     # Convert SignupRole to UserRole
     role_value = user_data.role.value if hasattr(user_data.role, 'value') else str(user_data.role)
     db_role = UserRole(role_value)
+    
+    # Generate unique referral code for new user
+    user_referral_code = generate_referral_code()
+    while get_user_by_referral_code(db, user_referral_code):
+        user_referral_code = generate_referral_code()
+    
+    # Check if referred by someone
+    referrer = None
+    if user_data.referral_code:
+        referrer = get_user_by_referral_code(db, user_data.referral_code)
+        if referrer and referrer.referral_used:
+            referrer = None  # Referral code already used
     
     db_user = User(
         first_name=user_data.first_name,
@@ -104,9 +167,24 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         company_name=user_data.company_name,
         business_category=user_data.business_category,
         gstin=user_data.gstin,
-        is_active=True
+        is_active=True,
+        referral_code=user_referral_code,
+        referred_by=referrer.id if referrer else None
     )
     db.add(db_user)
+    db.flush()  # Get the user ID
+    
+    # Handle referral bonuses
+    if referrer:
+        # Mark referrer's code as used
+        referrer.referral_used = True
+        
+        # Create wallet for new user with bonus
+        create_wallet_for_user(db, str(db_user.id), REFERRAL_BONUS_NEW_USER)
+        
+        # Give bonus to referrer
+        add_referral_bonus(db, str(referrer.id), REFERRAL_BONUS_REFERRER, "Referral bonus - new user signed up")
+    
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -116,13 +194,20 @@ def create_oauth_user(db: Session, email: str, first_name: str, last_name: str, 
     """Create user from OAuth provider"""
     # Generate a random password for OAuth users (they won't use it)
     random_password = secrets.token_urlsafe(32)
+    
+    # Generate unique referral code
+    user_referral_code = generate_referral_code()
+    while get_user_by_referral_code(db, user_referral_code):
+        user_referral_code = generate_referral_code()
+    
     db_user = User(
         first_name=first_name,
         last_name=last_name,
         email=email,
         password_hash=get_password_hash(random_password),
         role=UserRole.CUSTOMER,
-        is_active=True
+        is_active=True,
+        referral_code=user_referral_code
     )
     db.add(db_user)
     db.commit()
@@ -225,7 +310,8 @@ def user_to_response(user: User) -> UserResponse:
         company_name=user.company_name,
         business_category=user.business_category,
         gstin=user.gstin,
-        is_active=user.is_active
+        is_active=user.is_active,
+        referral_code=user.referral_code
     )
 
 
