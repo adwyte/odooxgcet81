@@ -161,7 +161,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               </div>
             </div>
-          )}}
+          )}
         </div>
       </aside>
     </>

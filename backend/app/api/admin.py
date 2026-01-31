@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, EmailStr
 from enum import Enum
 
-from app.database import get_db
-from app.models.models import User, UserRole
+from app.db import get_db
+from app.db.models.user import User, UserRole
 from app.services.auth_service import get_password_hash, get_current_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])

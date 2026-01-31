@@ -7,12 +7,16 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from authlib.integrations.requests_client import OAuth2Session
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
 from app.core.config import settings
 from app.db.models.user import User, UserRole
 from app.schemas.auth import UserCreate, UserResponse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # In-memory OTP storage (use Redis in production)
 otp_storage: dict[str, Tuple[str, datetime]] = {}
@@ -223,3 +227,39 @@ def user_to_response(user: User) -> UserResponse:
         gstin=user.gstin,
         is_active=user.is_active
     )
+
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+) -> User:
+    """Get current user from JWT token"""
+    from app.db import get_db
+    from app.db.session import SessionLocal
+    
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    payload = verify_token(token, "access")
+    if payload is None:
+        raise credentials_exception
+    
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        raise credentials_exception
+    
+    db = SessionLocal()
+    try:
+        user = get_user_by_id(db, user_id)
+        if user is None:
+            raise credentials_exception
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is disabled"
+            )
+        return user
+    finally:
+        db.close()
