@@ -406,3 +406,251 @@ async def approve_vendor(
     
     action = "approved" if approval.approved else "rejected"
     return {"message": f"Vendor {action} successfully"}
+
+
+# =====================
+# Wallet Management Endpoints
+# =====================
+
+from app.db.models.wallet import Wallet, WalletTransaction, TransactionType, TransactionStatus
+
+
+class AdminWalletResponse(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    user_email: str
+    balance: float
+    currency: str
+    is_active: bool
+    created_at: str
+
+
+class AdminTransactionResponse(BaseModel):
+    id: str
+    wallet_id: str
+    user_name: str
+    user_email: str
+    transaction_type: str
+    amount: float
+    balance_before: float
+    balance_after: float
+    status: str
+    reference_type: Optional[str]
+    description: Optional[str]
+    created_at: str
+
+
+class WalletStatsResponse(BaseModel):
+    total_wallets: int
+    total_balance: float
+    total_credited: float
+    total_debited: float
+    active_wallets: int
+    transactions_today: int
+    transactions_this_month: int
+
+
+class WalletAdjustment(BaseModel):
+    user_id: str
+    amount: float
+    transaction_type: str  # "CREDIT" or "DEBIT"
+    description: str
+
+
+@router.get("/wallets", response_model=List[AdminWalletResponse])
+async def get_all_wallets(
+    search: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Get all wallets with user info"""
+    query = db.query(Wallet).join(User, Wallet.user_id == User.id)
+    
+    if search:
+        query = query.filter(
+            (User.email.ilike(f"%{search}%")) |
+            (User.first_name.ilike(f"%{search}%")) |
+            (User.last_name.ilike(f"%{search}%"))
+        )
+    
+    wallets = query.order_by(desc(Wallet.balance)).offset(skip).limit(limit).all()
+    
+    result = []
+    for w in wallets:
+        user = db.query(User).filter(User.id == w.user_id).first()
+        result.append(AdminWalletResponse(
+            id=str(w.id),
+            user_id=str(w.user_id),
+            user_name=f"{user.first_name} {user.last_name}" if user else "Unknown",
+            user_email=user.email if user else "",
+            balance=w.balance,
+            currency=w.currency,
+            is_active=w.is_active,
+            created_at=w.created_at.isoformat() if w.created_at else ""
+        ))
+    
+    return result
+
+
+@router.get("/wallets/stats", response_model=WalletStatsResponse)
+async def get_wallet_stats(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Get overall wallet statistics"""
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    total_wallets = db.query(func.count(Wallet.id)).scalar() or 0
+    total_balance = db.query(func.coalesce(func.sum(Wallet.balance), 0)).scalar() or 0
+    active_wallets = db.query(func.count(Wallet.id)).filter(Wallet.is_active == True).scalar() or 0
+    
+    total_credited = db.query(func.coalesce(func.sum(WalletTransaction.amount), 0)).filter(
+        WalletTransaction.transaction_type == TransactionType.CREDIT,
+        WalletTransaction.status == TransactionStatus.COMPLETED
+    ).scalar() or 0
+    
+    total_debited = db.query(func.coalesce(func.sum(WalletTransaction.amount), 0)).filter(
+        WalletTransaction.transaction_type == TransactionType.DEBIT,
+        WalletTransaction.status == TransactionStatus.COMPLETED
+    ).scalar() or 0
+    
+    transactions_today = db.query(func.count(WalletTransaction.id)).filter(
+        WalletTransaction.created_at >= today_start
+    ).scalar() or 0
+    
+    transactions_this_month = db.query(func.count(WalletTransaction.id)).filter(
+        WalletTransaction.created_at >= month_start
+    ).scalar() or 0
+    
+    return WalletStatsResponse(
+        total_wallets=total_wallets,
+        total_balance=float(total_balance),
+        total_credited=float(total_credited),
+        total_debited=float(total_debited),
+        active_wallets=active_wallets,
+        transactions_today=transactions_today,
+        transactions_this_month=transactions_this_month
+    )
+
+
+@router.get("/transactions", response_model=List[AdminTransactionResponse])
+async def get_all_transactions(
+    search: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Get all transactions across all users"""
+    query = db.query(WalletTransaction).join(Wallet, WalletTransaction.wallet_id == Wallet.id)
+    
+    if transaction_type:
+        if transaction_type.upper() == "CREDIT":
+            query = query.filter(WalletTransaction.transaction_type == TransactionType.CREDIT)
+        elif transaction_type.upper() == "DEBIT":
+            query = query.filter(WalletTransaction.transaction_type == TransactionType.DEBIT)
+    
+    transactions = query.order_by(desc(WalletTransaction.created_at)).offset(skip).limit(limit).all()
+    
+    result = []
+    for txn in transactions:
+        wallet = db.query(Wallet).filter(Wallet.id == txn.wallet_id).first()
+        user = db.query(User).filter(User.id == wallet.user_id).first() if wallet else None
+        
+        # Apply search filter on user info
+        if search:
+            search_lower = search.lower()
+            if user:
+                if not (search_lower in user.email.lower() or 
+                        search_lower in user.first_name.lower() or 
+                        search_lower in user.last_name.lower()):
+                    continue
+            else:
+                continue
+        
+        result.append(AdminTransactionResponse(
+            id=str(txn.id),
+            wallet_id=str(txn.wallet_id),
+            user_name=f"{user.first_name} {user.last_name}" if user else "Unknown",
+            user_email=user.email if user else "",
+            transaction_type=txn.transaction_type.value if txn.transaction_type else "",
+            amount=txn.amount,
+            balance_before=txn.balance_before,
+            balance_after=txn.balance_after,
+            status=txn.status.value if txn.status else "",
+            reference_type=txn.reference_type,
+            description=txn.description,
+            created_at=txn.created_at.isoformat() if txn.created_at else ""
+        ))
+    
+    return result
+
+
+@router.post("/wallets/adjust")
+async def adjust_wallet_balance(
+    adjustment: WalletAdjustment,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Credit or debit a user's wallet (Admin only)"""
+    import uuid as uuid_module
+    
+    # Validate amount
+    if adjustment.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+    
+    # Get user
+    user = db.query(User).filter(User.id == adjustment.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get or create wallet
+    wallet = db.query(Wallet).filter(Wallet.user_id == user.id).first()
+    if not wallet:
+        wallet = Wallet(user_id=user.id, balance=0.0)
+        db.add(wallet)
+        db.commit()
+        db.refresh(wallet)
+    
+    # Determine transaction type
+    if adjustment.transaction_type.upper() == "CREDIT":
+        txn_type = TransactionType.CREDIT
+        new_balance = wallet.balance + adjustment.amount
+    elif adjustment.transaction_type.upper() == "DEBIT":
+        txn_type = TransactionType.DEBIT
+        if wallet.balance < adjustment.amount:
+            raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+        new_balance = wallet.balance - adjustment.amount
+    else:
+        raise HTTPException(status_code=400, detail="Invalid transaction type. Use CREDIT or DEBIT")
+    
+    # Create transaction
+    transaction = WalletTransaction(
+        wallet_id=wallet.id,
+        transaction_type=txn_type,
+        amount=adjustment.amount,
+        balance_before=wallet.balance,
+        balance_after=new_balance,
+        status=TransactionStatus.COMPLETED,
+        reference_type="ADMIN_ADJUSTMENT",
+        description=f"Admin adjustment: {adjustment.description}"
+    )
+    
+    # Update wallet balance
+    wallet.balance = new_balance
+    
+    db.add(transaction)
+    db.commit()
+    
+    return {
+        "message": f"Successfully {'credited' if txn_type == TransactionType.CREDIT else 'debited'} ₹{adjustment.amount}",
+        "new_balance": new_balance,
+        "transaction_id": str(transaction.id)
+    }
+

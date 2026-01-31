@@ -339,7 +339,8 @@ def user_to_response(user: User) -> UserResponse:
         country=user.country,
         
         is_active=user.is_active,
-        referral_code=user.referral_code
+        referral_code=user.referral_code,
+        profile_photo=user.profile_photo
     )
 
 

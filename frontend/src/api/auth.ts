@@ -38,12 +38,12 @@ export interface UserResponse {
   gstin?: string;
   is_active: boolean;
   referral_code?: string;
-  // Address info
   address?: string;
   city?: string;
   state?: string;
   postal_code?: string;
   country?: string;
+  profile_photo?: string;
 }
 
 export interface OTPResponse {

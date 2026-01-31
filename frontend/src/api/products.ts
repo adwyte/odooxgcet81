@@ -151,6 +151,22 @@ class ProductsApi {
     });
     return this.handleResponse<{ message: string }>(response);
   }
+
+  async uploadImage(file: File): Promise<{ url: string; filename: string }> {
+    const token = localStorage.getItem('access_token');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${this.baseUrl}/upload-image`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: formData
+    });
+    return this.handleResponse<{ url: string; filename: string }>(response);
+  }
 }
 
 export const productsApi = new ProductsApi();
+

@@ -234,18 +234,62 @@ export default function SettingsPage() {
               {/* Avatar */}
               <div className="flex items-center gap-6 mb-6 pb-6 border-b border-primary-200">
                 <div className="relative">
-                  <div className="w-24 h-24 bg-primary-200 rounded-full flex items-center justify-center">
-                    <span className="text-3xl font-bold text-primary-700">
-                      {profileData.firstName.charAt(0)}
-                    </span>
-                  </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-800 transition-colors">
+                  {user?.profilePhoto ? (
+                    <img
+                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.profilePhoto}`}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-primary-200 rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-primary-700">
+                        {profileData.firstName.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    id="profile-photo-input"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      const formData = new FormData();
+                      formData.append('file', file);
+
+                      try {
+                        const token = localStorage.getItem('access_token');
+                        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/profile-photo`, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: formData
+                        });
+
+                        if (response.ok) {
+                          window.location.reload(); // Refresh to show new photo
+                        } else {
+                          alert('Failed to upload photo');
+                        }
+                      } catch (err) {
+                        alert('Failed to upload photo');
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => document.getElementById('profile-photo-input')?.click()}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-800 transition-colors"
+                  >
                     <Camera size={16} />
                   </button>
                 </div>
                 <div>
                   <h3 className="font-medium text-primary-900">{profileData.firstName} {profileData.lastName}</h3>
                   <p className="text-sm text-primary-500 capitalize">{user?.role}</p>
+                  <p className="text-xs text-primary-400 mt-1">Click camera icon to update photo</p>
                 </div>
               </div>
 

@@ -91,6 +91,7 @@ class UserResponse(BaseModel):
     
     is_active: bool = True
     referral_code: Optional[str] = None  # User's own referral code
+    profile_photo: Optional[str] = None  # URL to profile photo
 
     class Config:
         from_attributes = True

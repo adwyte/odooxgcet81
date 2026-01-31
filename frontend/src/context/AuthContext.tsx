@@ -41,12 +41,12 @@ const mapApiUserToUser = (apiUser: UserResponse): User => ({
   createdAt: new Date().toISOString(),
   referralCode: apiUser.referral_code,
   phone: apiUser.phone,
-  // Address info
   address: apiUser.address,
   city: apiUser.city,
   state: apiUser.state,
   postalCode: apiUser.postal_code,
   country: apiUser.country,
+  profilePhoto: apiUser.profile_photo,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

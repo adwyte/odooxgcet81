@@ -13,12 +13,12 @@ export interface User {
   createdAt: string;
   referralCode?: string;
   phone?: string;
-  // Address info
   address?: string;
   city?: string;
   state?: string;
   postalCode?: string;
   country?: string;
+  profilePhoto?: string;
 }
 
 export interface AuthState {

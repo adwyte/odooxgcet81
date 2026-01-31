@@ -59,6 +59,7 @@ class User(Base):
     country = Column(String, nullable=True, default="India")
 
     is_active = Column(Boolean, default=True)
+    profile_photo = Column(String, nullable=True)  # URL to profile photo
     created_at = Column(DateTime, server_default=func.now())
     
     # Referral system
@@ -67,5 +68,5 @@ class User(Base):
     referral_used = Column(Boolean, default=False)  # Has this user's referral code been used?
 
     # Relationships
-    wallet = relationship("Wallet", back_populates="user", uselist=False)
+    wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
     referrer = relationship("User", remote_side=[id], foreign_keys=[referred_by])

@@ -10,7 +10,7 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  
+
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -22,12 +22,12 @@ export default function NewProductPage() {
   const [salesPrice, setSalesPrice] = useState(0);
   const [images, setImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
-  
+
   // Rental pricing
   const [hourlyPrice, setHourlyPrice] = useState<number | undefined>();
   const [dailyPrice, setDailyPrice] = useState<number | undefined>();
   const [weeklyPrice, setWeeklyPrice] = useState<number | undefined>();
-  
+
   // Attributes
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
 
@@ -46,7 +46,7 @@ export default function NewProductPage() {
         console.error('Failed to load categories:', err);
       }
     };
-    
+
     fetchCategories();
   }, [user, navigate]);
 
@@ -77,7 +77,7 @@ export default function NewProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       setError('Product name is required');
       return;
@@ -141,7 +141,7 @@ export default function NewProductPage() {
         {/* Basic Information */}
         <div className="bg-white rounded-xl border border-primary-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-primary-900">Basic Information</h2>
-          
+
           <div>
             <label className="block text-sm font-medium text-primary-700 mb-1">
               Product Name *
@@ -226,24 +226,52 @@ export default function NewProductPage() {
         {/* Images */}
         <div className="bg-white rounded-xl border border-primary-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-primary-900">Images</h2>
-          
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              className="input flex-1"
-              placeholder="Enter image URL"
-            />
-            <button
-              type="button"
-              onClick={handleAddImage}
-              className="btn btn-secondary"
-            >
-              <ImagePlus size={18} />
-              Add
-            </button>
+
+          {/* File Upload Zone */}
+          <div
+            className="border-2 border-dashed border-primary-300 rounded-xl p-8 text-center hover:border-accent-500 hover:bg-accent-50 transition-colors cursor-pointer"
+            onClick={() => document.getElementById('image-upload')?.click()}
+            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-accent-500', 'bg-accent-50'); }}
+            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-accent-500', 'bg-accent-50'); }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove('border-accent-500', 'bg-accent-50');
+              const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+              for (const file of files) {
+                try {
+                  const result = await productsApi.uploadImage(file);
+                  setImages(prev => [...prev, `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${result.url}`]);
+                } catch (err) {
+                  setError(`Failed to upload ${file.name}`);
+                }
+              }
+            }}
+          >
+            <ImagePlus size={48} className="mx-auto text-primary-400 mb-4" />
+            <p className="text-primary-600 font-medium">Drag and drop images here</p>
+            <p className="text-sm text-primary-400 mt-1">or click to select files</p>
+            <p className="text-xs text-primary-400 mt-2">Supported: JPG, PNG, GIF, WebP (Max 5MB)</p>
           </div>
+
+          <input
+            type="file"
+            id="image-upload"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              for (const file of files) {
+                try {
+                  const result = await productsApi.uploadImage(file);
+                  setImages(prev => [...prev, `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${result.url}`]);
+                } catch (err) {
+                  setError(`Failed to upload ${file.name}`);
+                }
+              }
+              e.target.value = ''; // Reset input
+            }}
+          />
 
           {images.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -273,7 +301,7 @@ export default function NewProductPage() {
         {/* Pricing */}
         <div className="bg-white rounded-xl border border-primary-200 p-6 space-y-4">
           <h2 className="text-lg font-semibold text-primary-900">Pricing</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-primary-700 mb-1">
