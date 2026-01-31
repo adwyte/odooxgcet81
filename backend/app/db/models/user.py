@@ -7,6 +7,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 import uuid
 import enum
 
@@ -42,3 +43,6 @@ class User(Base):
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    wallet = relationship("Wallet", back_populates="user", uselist=False)
