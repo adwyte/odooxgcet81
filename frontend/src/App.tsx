@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 // Layouts
 import AuthLayout from './components/layout/AuthLayout';
 import DashboardLayout from './components/layout/DashboardLayout';
+import AdminLayout from './components/layout/AdminLayout';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -28,8 +29,13 @@ import InvoicesPage from './pages/invoices/InvoicesPage';
 import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+
+// Admin Pages
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage from './pages/admin/UsersPage';
 import VendorsPage from './pages/admin/VendorsPage';
+import CategoriesPage from './pages/admin/CategoriesPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
 export default function App() {
   return (
@@ -64,8 +70,15 @@ export default function App() {
               <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/users" element={<UsersPage />} />
-              <Route path="/vendors" element={<VendorsPage />} />
+            </Route>
+
+            {/* Admin Routes (protected) */}
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/admin/vendors" element={<VendorsPage />} />
+              <Route path="/admin/categories" element={<CategoriesPage />} />
+              <Route path="/admin/settings" element={<AdminSettingsPage />} />
             </Route>
 
             {/* Redirects */}
