@@ -1,275 +1,231 @@
-# odooxgcet81
-Odoo x GCET 2026 - Group 81
+<div align="center">
 
-Core User & Auth Tables
-1️⃣ users
+# RentPe
 
-All roles live in one table.
+### Enterprise Rental Management Platform
 
-users
------
-id (uuid, pk)
-name
-email (unique)
-password_hash
-role ENUM('ADMIN','VENDOR','CUSTOMER')
-company_name
-gstin
-is_active
-created_at
-updated_at
+A modern, scalable rental management system built with FastAPI and React.  
+Streamline your rental operations with integrated payments, invoicing, and scheduling.
 
+[![Python](https://img.shields.io/badge/python-3.13+-3776ab.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18+-61dafb.svg?style=flat-square&logo=react&logoColor=black)](https://reactjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178c6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
-💡 Notes:
+[Features](#features) • [Installation](#installation) • [Documentation](#api-documentation) • [Contributing](#contributing)
 
-GSTIN mandatory for vendors/customers (as per invoicing rules)
+<br>
 
-Admin may have NULL company_name & gstin
+[![Demo Video](https://img.shields.io/badge/▶_Watch_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://drive.google.com/file/d/1MKjsFGA0lwCLa7TOiROyoCctdf8GmR4f/view?usp=sharing)
 
-2️⃣ user_addresses
+</div>
 
-Customers can have multiple delivery/pickup addresses.
+---
 
-user_addresses
---------------
-id (uuid, pk)
-user_id (fk -> users.id)
-address_line1
-address_line2
-city
-state
-pincode
-country
-is_default
+## Overview
 
-📦 Step 2: Product & Inventory Modeling
+RentPe is a comprehensive rental management solution designed for businesses that need to manage product rentals, customer relationships, and financial transactions in one unified platform. Built with modern technologies and best practices, it provides a robust foundation for rental operations of any scale.
 
-This is critical for rental systems.
+## Features
 
-3️⃣ products
-products
---------
-id (uuid, pk)
-vendor_id (fk -> users.id)
-name
-description
-is_rentable (boolean)
-quantity_on_hand
-cost_price
-is_published
-created_at
-updated_at
+### Core Functionality
 
-4️⃣ product_pricing
+| Module | Capabilities |
+|--------|-------------|
+| **Authentication** | JWT-based auth, OAuth 2.0 (Google), role-based access control |
+| **Product Management** | Catalog management, inventory tracking, availability scheduling |
+| **Order Processing** | Cart system, quotations, order lifecycle management |
+| **Payments** | Razorpay integration, digital wallet, coupon/discount system |
+| **Invoicing** | Automated invoice generation, email delivery, payment tracking |
+| **Calendar** | Google Calendar sync, rental schedule management |
+| **Administration** | User management, analytics dashboard, transaction monitoring |
 
-Supports hourly / daily / weekly / custom pricing.
+### User Roles
 
-product_pricing
----------------
-id (uuid, pk)
-product_id (fk)
-pricing_type ENUM('HOUR','DAY','WEEK','CUSTOM')
-price
+- **Customer** — Browse products, place orders, manage wallet
+- **Vendor** — List products, manage inventory, process orders
+- **Admin** — Full system access, user management, analytics
 
-5️⃣ product_attributes
-product_attributes
-------------------
-id (uuid, pk)
-name   -- Brand, Color, Size
+## Technology Stack
 
-6️⃣ product_attribute_values
-product_attribute_values
-------------------------
-id (uuid, pk)
-attribute_id (fk)
-value
+### Backend
+- **Framework:** FastAPI (Python 3.13+)
+- **Database:** PostgreSQL with SQLAlchemy ORM
+- **Migrations:** Alembic
+- **Authentication:** JWT + OAuth 2.0
+- **Payments:** Razorpay SDK
 
-7️⃣ product_variants
+### Frontend
+- **Framework:** React 18 with TypeScript
+- **Build Tool:** Vite
+- **Styling:** TailwindCSS
+- **Routing:** React Router v6
 
-Variant-based pricing & inventory.
+## Project Structure
 
-product_variants
-----------------
-id (uuid, pk)
-product_id (fk)
-sku
-quantity
-additional_price
+```
+├── backend/
+│   ├── app/
+│   │   ├── api/          # Route handlers
+│   │   ├── core/         # Configuration
+│   │   ├── db/           # Database models & session
+│   │   ├── services/     # Business logic
+│   │   └── main.py       # Application entry
+│   ├── alembic/          # Database migrations
+│   └── requirements.txt
+│
+└── frontend/
+    ├── src/
+    │   ├── api/          # API client layer
+    │   ├── components/   # Reusable components
+    │   ├── context/      # State management
+    │   ├── pages/        # Page components
+    │   └── App.tsx       # Route definitions
+    └── package.json
+```
 
-8️⃣ variant_attribute_map
-variant_attribute_map
----------------------
-variant_id (fk)
-attribute_value_id (fk)
+## Installation
 
-🧾 Step 3: Quotation → Order Lifecycle (MOST IMPORTANT)
-9️⃣ quotations
-quotations
-----------
-id (uuid, pk)
-customer_id (fk -> users)
-status ENUM('DRAFT','SENT','CONFIRMED')
-valid_until
-total_amount
-created_at
+### Prerequisites
 
-🔟 quotation_lines
-quotation_lines
----------------
-id (uuid, pk)
-quotation_id (fk)
-product_id (fk)
-variant_id (fk, nullable)
-rental_start
-rental_end
-quantity
-price
+- Python 3.13+
+- Node.js 18+
+- PostgreSQL 15+
+- Razorpay account
+- Google Cloud project (optional, for OAuth)
 
+### Backend Setup
 
-💡 Editable until confirmed.
+```bash
+# Clone repository
+git clone https://github.com/adwyte/odooxgcet81.git
+cd odooxgcet81/backend
 
-1️⃣1️⃣ rental_orders
-rental_orders
--------------
-id (uuid, pk)
-quotation_id (fk)
-customer_id (fk)
-vendor_id (fk)
-status ENUM('CONFIRMED','ACTIVE','COMPLETED','CANCELLED')
-rental_start
-rental_end
-created_at
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+.\venv\Scripts\activate   # Windows
 
-1️⃣2️⃣ rental_order_lines
-rental_order_lines
-------------------
-id (uuid, pk)
-order_id (fk)
-product_id (fk)
-variant_id (fk)
-quantity
-rental_start
-rental_end
-price
+# Install dependencies
+pip install -r requirements.txt
 
-⛔ Step 4: Reservation Logic (Prevents Overbooking)
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
 
-This is non-negotiable in a rental system.
+# Run migrations
+alembic upgrade head
 
-1️⃣3️⃣ reservations
-reservations
-------------
-id (uuid, pk)
-product_id (fk)
-variant_id (fk)
-order_id (fk)
-reserved_from
-reserved_to
-quantity
-status ENUM('ACTIVE','RELEASED')
+# Start server
+uvicorn app.main:app --reload --port 8000
+```
 
+### Frontend Setup
 
-🔒 Logic:
+```bash
+cd frontend
 
-Before confirming order → check overlapping reservations
+# Install dependencies
+npm install
 
-(reserved_from, reserved_to) must not overlap
+# Configure environment
+cp .env.example .env
+# Edit .env with your API URL
 
-🚚 Step 5: Pickup & Return Tracking
-1️⃣4️⃣ pickups
-pickups
--------
-id (uuid, pk)
-order_id (fk)
-scheduled_date
-actual_date
-status ENUM('PENDING','COMPLETED')
-instructions
+# Start development server
+npm run dev
+```
 
-1️⃣5️⃣ returns
-returns
--------
-id (uuid, pk)
-order_id (fk)
-scheduled_date
-actual_date
-late_fee
-status ENUM('PENDING','COMPLETED','LATE')
+### Environment Variables
 
-💰 Step 6: Invoicing & Payments
-1️⃣6️⃣ invoices
-invoices
---------
-id (uuid, pk)
-order_id (fk)
-invoice_number
-status ENUM('DRAFT','PARTIALLY_PAID','PAID')
-subtotal
-tax_amount
-total_amount
-security_deposit
-created_at
+**Backend (.env)**
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/rentpe
+SECRET_KEY=your-secret-key
+RAZORPAY_KEY_ID=rzp_xxx
+RAZORPAY_KEY_SECRET=xxx
+GOOGLE_CLIENT_ID=xxx
+GOOGLE_CLIENT_SECRET=xxx
+```
 
-1️⃣7️⃣ payments
-payments
---------
-id (uuid, pk)
-invoice_id (fk)
-amount
-payment_method
-payment_status ENUM('PENDING','SUCCESS','FAILED')
-transaction_ref
-paid_at
+**Frontend (.env)**
+```env
+VITE_API_URL=http://localhost:8000
+VITE_RAZORPAY_KEY_ID=rzp_xxx
+```
 
+## API Documentation
 
-✅ Supports:
+Interactive API documentation is available when the backend is running:
 
-Partial payment
+| Interface | URL |
+|-----------|-----|
+| Swagger UI | http://localhost:8000/docs |
+| ReDoc | http://localhost:8000/redoc |
 
-Security deposit
+### Key Endpoints
 
-Online gateway callbacks
+```
+POST   /api/auth/register          # User registration
+POST   /api/auth/login             # Authentication
+GET    /api/products               # Product listing
+POST   /api/orders                 # Create order
+POST   /api/payment/create-order   # Initialize payment
+POST   /api/payment/validate-coupon # Validate discount code
+GET    /api/wallet                 # Wallet balance
+GET    /api/admin/coupons          # Coupon management (admin)
+```
 
-⚙️ Step 7: Settings & Configurations
-1️⃣8️⃣ rental_settings
-rental_settings
----------------
-id (uuid, pk)
-enable_hourly
-enable_daily
-enable_weekly
-gst_percentage
-late_fee_per_day
+## Database Schema
 
-1️⃣9️⃣ coupons
-coupons
--------
-id (uuid, pk)
-code
-discount_type ENUM('PERCENT','FLAT')
-discount_value
-valid_from
-valid_to
+```
+users ─────────┬──────> wallets ──────> wallet_transactions
+               │
+               ├──────> orders ───────> order_lines ──────> products
+               │
+               ├──────> quotations
+               │
+               └──────> invoices
 
-📊 Step 8: Reporting Support Tables (Optional but Smart)
-2️⃣0️⃣ audit_logs
-audit_logs
-----------
-id (uuid, pk)
-user_id (fk)
-action
-entity
-entity_id
-timestamp
+coupons (standalone)
+```
 
+## Deployment
 
-🧱 Final Table Count (Hackathon-Ready)
-Category	Tables
-Auth & Users	2
-Products & Inventory	6
-Quotations & Orders	4
-Reservations	1
-Pickup & Return	2
-Invoices & Payments	2
-Settings & Reports	3
-Total	20 tables
+### Docker
+
+```bash
+docker-compose up -d
+```
+
+### Production Build
+
+```bash
+# Frontend
+cd frontend && npm run build
+
+# Backend (with Gunicorn)
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit changes (`git commit -m 'Add new feature'`)
+4. Push to branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**[Documentation](https://github.com/adwyte/odooxgcet81/wiki)** • **[Report Bug](https://github.com/adwyte/odooxgcet81/issues)** • **[Request Feature](https://github.com/adwyte/odooxgcet81/issues)**
+
+</div>
