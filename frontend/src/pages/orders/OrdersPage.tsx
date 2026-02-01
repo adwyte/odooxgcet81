@@ -55,6 +55,9 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const queryParams = new URLSearchParams(location.search);
+  const filterParam = queryParams.get('filter');
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
