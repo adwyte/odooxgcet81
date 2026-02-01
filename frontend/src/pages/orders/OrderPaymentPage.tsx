@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -13,8 +13,15 @@ import {
 import { invoicesApi, Invoice } from '../../api/invoices';
 import { ordersApi } from '../../api/orders';
 import { walletApi } from '../../api/wallet';
+import { paymentApi } from '../../api/payment';
 import { useAuth } from '../../context/AuthContext';
 import { PaymentMethod } from '../../types';
+
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
 
 export default function OrderPaymentPage() {
     const { id } = useParams<{ id: string }>();
@@ -27,9 +34,6 @@ export default function OrderPaymentPage() {
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [walletBalance, setWalletBalance] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
-
-    // Razorpay payment link (simulated)
-    const RAZORPAY_PAYMENT_LINK = 'https://rzp.io/rzp/gg6pjKf';
 
     useEffect(() => {
         const initPayment = async () => {
@@ -75,7 +79,17 @@ export default function OrderPaymentPage() {
             }
         };
 
+        // Load Razorpay Script
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+
         initPayment();
+
+        return () => {
+            document.body.removeChild(script);
+        };
     }, [id]);
 
     const handlePayment = async () => {
@@ -90,12 +104,65 @@ export default function OrderPaymentPage() {
         const amountToPay = invoice.total_amount - invoice.paid_amount;
 
         if (paymentMethod === 'online') {
-            // Simulate Online Payment redirect
-            window.open(RAZORPAY_PAYMENT_LINK, '_blank');
-            // In a real app, we'd wait for webhook or callback. 
-            // Here we might just navigate to invoice or order page.
-            alert('Redirecting to payment gateway. After payment, refresh the order status.');
-            navigate(`/orders/${id}`);
+            try {
+                setProcessing(true);
+
+                // 1. Create Order on Backend
+                const orderData = await paymentApi.createRazorpayOrder(amountToPay, invoice.id);
+
+                // 2. Initialize Razorpay Options
+                const options = {
+                    key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SAfntQHXftrjGP', // Key ID provided by user
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: "Rental Management System",
+                    description: `Payment for Invoice #${invoice.invoice_number}`,
+                    image: "/logo.png", // Add logo if available
+                    order_id: orderData.id,
+                    handler: async function (response: any) {
+                        try {
+                            // Verify Payment on Backend (Optional but recommended, skipping for basic integration)
+                            // For now, assume success and mark invoice as paid
+                            await invoicesApi.addPayment(invoice.id, {
+                                amount: amountToPay,
+                                method: 'ONLINE',
+                                transaction_id: response.razorpay_payment_id
+                            });
+
+                            alert('Payment Successful!');
+                            navigate(`/orders/${id}`);
+                        } catch (err) {
+                            console.error('Payment verification failed:', err);
+                            alert('Payment verification failed. Please contact support.');
+                        }
+                    },
+                    prefill: {
+                        name: user?.firstName + ' ' + user?.lastName,
+                        email: user?.email,
+                        contact: user?.phoneNumber || ""
+                    },
+                    notes: {
+                        invoice_id: invoice.id
+                    },
+                    theme: {
+                        color: "#0f172a" // primary-900
+                    }
+                };
+
+                // 3. Open Razorpay Modal
+                const rzp1 = new window.Razorpay(options);
+                rzp1.on('payment.failed', function (response: any) {
+                    alert('Payment Failed: ' + response.error.description);
+                });
+                rzp1.open();
+
+            } catch (err: any) {
+                console.error('Payment initiation failed:', err);
+                alert('Failed to initiate online payment: ' + (err.message || 'Unknown error'));
+            } finally {
+                setProcessing(false);
+            }
+
         } else if (paymentMethod === 'wallet') { // Note: 'wallet' matches frontend type, mapped to 'WALLET' enum in backend
             if (walletBalance < amountToPay) {
                 alert('Insufficient wallet balance');
