@@ -396,9 +396,9 @@ async def add_payment(
                 try:
                     print(f"Attempting to send payment confirmation email to {invoice.customer.email}")
                     send_email(
-                        to_email=invoice.customer.email,
-                        subject=f"Payment Confirmation - {invoice.invoice_number}",
-                        body=email_html
+                        invoice.customer.email,
+                        f"Payment Confirmation - {invoice.invoice_number}",
+                        html_content
                     )
                     print(f"Successfully sent payment confirmation email to {invoice.customer.email}")
                 except Exception as e:
