@@ -59,7 +59,9 @@ export default function WalletPage() {
     fetchWalletData();
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body && document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
