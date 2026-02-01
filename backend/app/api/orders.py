@@ -326,18 +326,19 @@ async def update_order(
                 
                 # 2. Calculate Late Fees
                 late_fee = 0.0
-                if order.rental_end_date and return_date > order.rental_end_date:
-                    # Simple rule: hourly rental * hours late, or daily * days late
-                    # For MVP, let's assume 10% of total order per day late? 
-                    # Or rely on vendor to manually input late fee?
-                    # The prompt says "complete the flow", implying automation.
-                    # Let's verify if rental_end_date is aware of timezone. safer to use offset-naive or aware consistently.
-                    # Assuming db stores naive UTC or consistent.
-                    
-                    # Logic: If late, charge. 
-                    # If user provided late_return_fee in request, use it.
-                    pass 
+                if order.rental_end_date:
+                    # Ensure timezone awareness compatibility
+                    if return_date.tzinfo is None and order.rental_end_date.tzinfo is not None:
+                         return_date = return_date.replace(tzinfo=order.rental_end_date.tzinfo)
+                    elif return_date.tzinfo is not None and order.rental_end_date.tzinfo is None:
+                         return_date = return_date.replace(tzinfo=None)
+                         
+                    if return_date > order.rental_end_date:
+                        # Simple rule: 10% of total per day late
+                        days_late = (return_date - order.rental_end_date).days + 1
+                        late_fee = float(order.total_amount) * 0.10 * days_late
                 
+                # If user provided fee, override
                 if data.late_return_fee is not None:
                      late_fee = data.late_return_fee
                 
@@ -379,7 +380,41 @@ async def update_order(
                         line.product.reserved_quantity = max(0, (line.product.reserved_quantity or 0) - line.quantity)
                         
             else:
+                 prev_status = order.status
                  order.status = new_status
+                 
+                 # Send email for PICKED_UP
+                 if new_status == OrderStatus.PICKED_UP and prev_status != OrderStatus.PICKED_UP and order.customer:
+                    try:
+                        from app.services.email_service import send_email
+                        
+                        return_date_str = "Not specified"
+                        if order.rental_end_date:
+                            return_date_str = order.rental_end_date.strftime("%B %d, %Y")
+                        
+                        subject = f"Order Picked Up - {order.order_number}"
+                        html_content = f"""
+                        <html>
+                            <body>
+                                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                                    <h2 style="color: #4F46E5;">Order Picked Up</h2>
+                                    <p>Hi {order.customer.first_name},</p>
+                                    <p>Your rental order <strong>{order.order_number}</strong> has been marked as picked up.</p>
+                                    
+                                    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                        <p style="margin: 0;"><strong>⚠️ Return Reminder</strong></p>
+                                        <p style="margin: 5px 0 0;">Please ensure the items are returned by <strong>{return_date_str}</strong> to avoid late fees.</p>
+                                    </div>
+                                    
+                                    <p>Happy Renting!</p>
+                                </div>
+                            </body>
+                        </html>
+                        """
+                        send_email(order.customer.email, subject, html_content)
+                    except Exception as e:
+                         print(f"Failed to send pickup email: {e}")
+
                  # If completed or cancelled manually
                  if order.status in [OrderStatus.COMPLETED, OrderStatus.CANCELLED]:
                     for line in order.lines:

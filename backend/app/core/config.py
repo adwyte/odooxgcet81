@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     # OTP Settings
     OTP_EXPIRE_MINUTES: int = 10
     
-    
+    # Razorpay Settings
+    RAZORPAY_KEY_ID: Optional[str] = None
+    RAZORPAY_KEY_SECRET: Optional[str] = None
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

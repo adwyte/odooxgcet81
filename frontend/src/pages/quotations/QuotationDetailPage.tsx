@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
     expired: 'badge-neutral',
     confirmed: 'badge-success',
     cancelled: 'badge-danger',
+    ordered: 'badge-neutral',
 };
 
 export default function QuotationDetailPage() {
@@ -99,7 +100,7 @@ export default function QuotationDetailPage() {
             }));
 
             await quotationsApi.updateQuotation(quotation.id, {
-                status: 'reviewed',
+                status: 'sent',
                 lines: linesUpdate
             });
 
@@ -120,7 +121,7 @@ export default function QuotationDetailPage() {
         try {
             setProcessing(true);
             await quotationsApi.updateQuotation(quotation.id, {
-                status: accept ? 'accepted' : 'rejected'
+                status: accept ? 'confirmed' : 'draft'
             });
             fetchQuotation();
             if (accept) {
@@ -253,7 +254,7 @@ export default function QuotationDetailPage() {
 
                                     <div className="text-right">
                                         {/* Vendor Editing Interface */}
-                                        {isVendor && (quotation.status.toUpperCase() === 'REQUESTED' || quotation.status.toUpperCase() === 'DRAFT') ? (
+                                        {isVendor && (quotation.status.toUpperCase() === 'DRAFT') ? (
                                             <div className="flex flex-col items-end gap-2">
                                                 <label className="text-xs text-primary-500">Unit Price</label>
                                                 <div className="flex items-center gap-2">
@@ -292,13 +293,13 @@ export default function QuotationDetailPage() {
                                     <div className="flex justify-between font-bold text-lg text-primary-900">
                                         <span>Total Amount</span>
                                         <span>
-                                            {isVendor && (quotation.status.toUpperCase() === 'REQUESTED' || quotation.status.toUpperCase() === 'DRAFT')
+                                            {isVendor && (quotation.status.toUpperCase() === 'DRAFT')
                                                 ? formatPrice(calculateTotal())
                                                 : formatPrice(quotation.total_amount)
                                             }
                                         </span>
                                     </div>
-                                    {isVendor && (quotation.status.toUpperCase() === 'REQUESTED' || quotation.status.toUpperCase() === 'DRAFT') && (
+                                    {isVendor && (quotation.status.toUpperCase() === 'DRAFT') && (
                                         <p className="text-xs text-right text-primary-500">* Total excludes tax, calculated on finalize</p>
                                     )}
                                 </div>
@@ -328,7 +329,7 @@ export default function QuotationDetailPage() {
                         <div className="space-y-3">
 
                             {/* VENDOR ACTIONS */}
-                            {isVendor && (quotation.status.toUpperCase() === 'REQUESTED' || quotation.status.toUpperCase() === 'DRAFT') && (
+                            {isVendor && (quotation.status.toUpperCase() === 'DRAFT') && (
                                 <button
                                     onClick={handleVendorSubmit}
                                     disabled={processing}
@@ -340,7 +341,7 @@ export default function QuotationDetailPage() {
                             )}
 
                             {/* CUSTOMER ACTIONS */}
-                            {isCustomer && quotation.status.toUpperCase() === 'REVIEWED' && (
+                            {isCustomer && quotation.status.toUpperCase() === 'SENT' && (
                                 <>
                                     <button
                                         onClick={() => handleUserResponse(true)}
@@ -362,7 +363,7 @@ export default function QuotationDetailPage() {
                             )}
 
                             {/* POST-ACCEPTANCE ACTIONS */}
-                            {quotation.status.toUpperCase() === 'ACCEPTED' && (
+                            {quotation.status.toUpperCase() === 'CONFIRMED' && (
                                 <div className="bg-green-50 p-4 rounded-lg text-center">
                                     <p className="text-green-800 font-medium mb-3">Quote Accepted!</p>
                                     {isCustomer && (
@@ -378,8 +379,27 @@ export default function QuotationDetailPage() {
                                 </div>
                             )}
 
+                            {/* SUCCESS STATE */}
+                            {quotation.status.toUpperCase() === 'ORDERED' && (
+                                <div className="bg-blue-50 p-4 rounded-lg text-center border border-blue-100">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <CheckCircle size={24} className="text-blue-600" />
+                                    </div>
+                                    <p className="text-blue-900 font-bold mb-1">Order Placed</p>
+                                    <p className="text-blue-700 text-sm mb-3">
+                                        An order has been created from this quotation.
+                                    </p>
+                                    <button
+                                        onClick={() => navigate('/orders')}
+                                        className="btn btn-outline w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    >
+                                        View Orders
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Other States */}
-                            {quotation.status.toUpperCase() === 'REQUESTED' && isCustomer && (
+                            {quotation.status.toUpperCase() === 'DRAFT' && isCustomer && (
                                 <p className="text-sm text-center text-primary-500">
                                     Waiting for vendor review...
                                 </p>
@@ -389,6 +409,6 @@ export default function QuotationDetailPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
