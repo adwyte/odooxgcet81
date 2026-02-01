@@ -28,6 +28,7 @@ class PaymentApi {
         amount: number;
         currency: string;
         receipt: string;
+        key_id: string;
     }> {
         const response = await fetch(`${this.baseUrl}/create-order`, {
             method: 'POST',

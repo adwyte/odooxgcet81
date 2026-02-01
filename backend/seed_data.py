@@ -62,14 +62,14 @@ def seed_users(db: Session):
     # Vendor users
     vendors_data = [
         {
-            "first_name": "Rajesh",
-            "last_name": "Kumar",
-            "email": "rajesh@rentalshop.com",
+            "first_name": "Aditya",
+            "last_name": "Kulkarni",
+            "email": "kulkarni@trekrentals.com",
             "phone": "9876543211",
-            "company_name": "Kumar Equipment Rentals",
-            "business_category": "Construction and Tools",
+            "company_name": "Kulkarni Trekking & Outdoors",
+            "business_category": "Trekking & Camping",
             "gstin": "27AABCU9603R1ZM",
-            "address": "45 Industrial Area",
+            "address": "45 Adventure Hub",
             "city": "Pune",
             "state": "Maharashtra",
             "postal_code": "411001"
@@ -80,22 +80,22 @@ def seed_users(db: Session):
             "email": "priya@eventrentals.com",
             "phone": "9876543212",
             "company_name": "Sharma Event Supplies",
-            "business_category": "Event Equipment",
+            "business_category": "Events & Parties",
             "gstin": "29AADCS1234F1ZN",
-            "address": "12 Event Plaza",
+            "address": "12 Celebration Plaza",
             "city": "Bangalore",
             "state": "Karnataka",
             "postal_code": "560001"
         },
         {
-            "first_name": "Mandar",
-            "last_name": "Karmarkar",
-            "email": "mkar@toolsrental.com",
+            "first_name": "Vikram",
+            "last_name": "Lensman",
+            "email": "vikram@camerarentals.com",
             "phone": "9876543213",
-            "company_name": "MK Audio Visuals",
-            "business_category": "AV Equipment",
+            "company_name": "ProCam Rentals",
+            "business_category": "Photography",
             "gstin": "33AABCA5678G1ZO",
-            "address": "78 Tech Park",
+            "address": "78 Studio Lane",
             "city": "Hyderabad",
             "state": "Telangana",
             "postal_code": "500001"
@@ -105,10 +105,10 @@ def seed_users(db: Session):
             "last_name": "Patel",
             "email": "anita@partyrentals.com",
             "phone": "9876543214",
-            "company_name": "Patel Party Rentals",
-            "business_category": "Party Supplies",
+            "company_name": "City Daily Rentals",
+            "business_category": "General Utilities",
             "gstin": "24AABCP9012H1ZP",
-            "address": "90 Celebration Road",
+            "address": "90 Market Road",
             "city": "Ahmedabad",
             "state": "Gujarat",
             "postal_code": "380001"
@@ -141,12 +141,10 @@ def seed_users(db: Session):
     customers_data = [
         {"first_name": "Amit", "last_name": "Singh", "email": "amit@email.com", "phone": "9988776655", "city": "Delhi"},
         {"first_name": "Sneha", "last_name": "Reddy", "email": "sneha@email.com", "phone": "9988776656", "city": "Hyderabad"},
-        {"first_name": "Vikram", "last_name": "Joshi", "email": "vikram@email.com", "phone": "9988776657", "city": "Mumbai"},
+        {"first_name": "Arjun", "last_name": "Kapoor", "email": "arjun@email.com", "phone": "9988776657", "city": "Mumbai"},
         {"first_name": "Deepika", "last_name": "Nair", "email": "deepika@email.com", "phone": "9988776658", "city": "Bangalore"},
         {"first_name": "Suresh", "last_name": "Menon", "email": "suresh@email.com", "phone": "9988776659", "city": "Chennai"},
         {"first_name": "Kavita", "last_name": "Gupta", "email": "kavita@email.com", "phone": "9988776660", "city": "Kolkata"},
-        {"first_name": "Rahul", "last_name": "Verma", "email": "rahul@email.com", "phone": "9988776661", "city": "Pune"},
-        {"first_name": "Meera", "last_name": "Iyer", "email": "meera@email.com", "phone": "9988776662", "city": "Jaipur"},
     ]
     
     customers = []
@@ -180,14 +178,12 @@ def seed_categories(db: Session):
     print("Seeding categories...")
     
     categories_data = [
-        {"name": "Construction Equipment", "description": "Heavy machinery and construction tools"},
-        {"name": "Event Supplies", "description": "Tents, chairs, tables and event decoration"},
-        {"name": "Audio Visual", "description": "Sound systems, projectors, screens and lighting"},
-        {"name": "Party Supplies", "description": "Party decorations, games and entertainment"},
-        {"name": "Industrial Tools", "description": "Professional grade industrial equipment"},
-        {"name": "Outdoor Equipment", "description": "Camping, hiking and outdoor gear"},
-        {"name": "Photography", "description": "Cameras, lenses and photography equipment"},
-        {"name": "Furniture", "description": "Rental furniture for events and offices"},
+        {"name": "Trekking & Camping", "description": "Tents, sleeping bags, backpacks, and safety gear"},
+        {"name": "Photography & AV", "description": "Cameras, lenses, tripods, drones, and lighting"},
+        {"name": "Event & Party", "description": "Speakers, projectors, chairs, tables, and decor"},
+        {"name": "Daily Utilities", "description": "Tools, ladders, cleaning equipment, and appliances"},
+        {"name": "Holiday Equipment", "description": "Suitcases, travel gear, skiing equipment, and beach gear"},
+        {"name": "Electronics", "description": "Laptops, tablets, gaming consoles, and VR headsets"}
     ]
     
     categories = []
@@ -210,135 +206,254 @@ def seed_products(db: Session, vendors, categories):
     """Create sample products"""
     print("Seeding products...")
     
+    # Map vendors by index for clearer assignment
+    # 0: Kulkarni (Trekking)
+    # 1: Sharma (Events)
+    # 2: ProCam (Photography)
+    # 3: City Daily (Utilities/General)
+    
     products_data = [
-        # Photography (vendor 0 - Kumar -> Changed to Cameras for variety in demo)
-        # Assuming we might want to update vendor categories too, but let's stick to product mapping
-        # I'll repurpose vendors slightly or just assign categories logically.
-        
-        # Audio Visual (vendor 2 - Ali Audio Visuals)
+        # --- Trekking & Camping (Vendor 0) ---
         {
-            "name": "JBL PartyBox 1000",
-            "description": "High power audio system with full panel light show",
-            "category": "Audio Visual",
-            "vendor_idx": 2,
-            "rental_price_daily": 3500,
-            "rental_price_weekly": 15000,
-            "cost_price": 85000,
-            "sales_price": 95000,
-            "quantity": 4,
-            "images": ["https://images.unsplash.com/photo-1545665277-5937a5953929?w=500"]
+            "name": "Quechua 4-Person Camping Tent",
+            "description": "Waterproof, wind-resistant pop-up tent. Easy installation.",
+            "category": "Trekking & Camping",
+            "vendor_idx": 0,
+            "rental_price_daily": 500,
+            "rental_price_weekly": 1500,
+            "cost_price": 8000,
+            "sales_price": 0, # Not for sale
+            "quantity": 10,
+            "images": ["https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=800"]
         },
         {
+            "name": "Trekking Rucksack 60L",
+            "description": "Ergonomic hiking backpack with rain cover and multiple compartments.",
+            "category": "Trekking & Camping",
+            "vendor_idx": 0,
+            "rental_price_daily": 200,
+            "rental_price_weekly": 800,
+            "cost_price": 4000,
+            "sales_price": 0,
+            "quantity": 15,
+            "images": ["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800"]
+        },
+        {
+            "name": "Sleeping Bag (-5°C)",
+            "description": "Thermal sleeping bag appropriate for himalayan treks.",
+            "category": "Trekking & Camping",
+            "vendor_idx": 0,
+            "rental_price_daily": 150,
+            "rental_price_weekly": 600,
+            "cost_price": 3000,
+            "sales_price": 0,
+            "quantity": 20,
+            "images": ["https://images.unsplash.com/photo-1627662168806-432540623635?w=800"]
+        },
+        {
+            "name": "GoPro Hero 11 Black",
+            "description": "Action camera for capturing your adventures. 5.3K video.",
+            "category": "Photography & AV", # Cross category
+            "vendor_idx": 0,
+            "rental_price_daily": 800,
+            "rental_price_weekly": 3500,
+            "cost_price": 45000,
+            "sales_price": 0,
+            "quantity": 5,
+            "images": ["https://images.unsplash.com/photo-1564463836205-4d3cb77cdcf9?w=800"]
+        },
+
+        # --- Photography & AV (Vendor 2) ---
+        {
             "name": "Sony Alpha a7 III Kit",
-            "description": "Full-frame mirrorless camera with 28-70mm lens",
-            "category": "Photography",
+            "description": "Full-frame mirrorless camera with 28-70mm lens. Perfect for weddings and events.",
+            "category": "Photography & AV",
             "vendor_idx": 2,
             "rental_price_daily": 2500,
             "rental_price_weekly": 10000,
             "cost_price": 160000,
             "sales_price": 180000,
-            "quantity": 5,
-            "images": ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500"]
+            "quantity": 4,
+            "images": ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800"]
         },
         {
-            "name": "GoPro Hero 11 Black",
-            "description": "Waterproof action camera with 5.3K60 video",
-            "category": "Photography",
+            "name": "Canon EF 70-200mm f/2.8L",
+            "description": "Telephoto zoom lens. Industry standard for sports and portraits.",
+            "category": "Photography & AV",
             "vendor_idx": 2,
-            "rental_price_daily": 800,
-            "rental_price_weekly": 3500,
-            "cost_price": 40000,
-            "sales_price": 45000,
-            "quantity": 8,
-            "images": ["https://images.unsplash.com/photo-1564463836205-4d3cb77cdcf9?w=500"]
-        },
-        
-        # Event Supplies (vendor 1 - Sharma Event Supplies)
-        {
-            "name": "Pop-up Canopy Tent (10x10)",
-            "description": "Instant pop-up commercial grade canopy tent - white",
-            "category": "Event Supplies",
-            "vendor_idx": 1,
-            "rental_price_daily": 1200,
-            "rental_price_weekly": 5000,
-            "cost_price": 15000,
-            "sales_price": 20000,
-            "quantity": 15,
-            "images": ["https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=500"]
-        },
-        {
-            "name": "Chiavari Chairs (Set of 10)",
-            "description": "Elegant gold chiavari chairs with cushion",
-            "category": "Furniture",
-            "vendor_idx": 1,
             "rental_price_daily": 1500,
             "rental_price_weekly": 6000,
-            "cost_price": 25000,
-            "sales_price": 35000,
-            "quantity": 20,
-            "images": ["https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=500"]
+            "cost_price": 140000,
+            "sales_price": 0,
+            "quantity": 3,
+            "images": ["https://images.unsplash.com/photo-1617005082133-548c4dd27f35?w=800"]
         },
         {
-            "name": "Portable Projector Screen 100\"",
-            "description": "Easy setup projection screen with stand",
-            "category": "Audio Visual",
-            "vendor_idx": 1,
-            "rental_price_daily": 600,
-            "rental_price_weekly": 2500,
-            "cost_price": 8000,
-            "sales_price": 12000,
-            "quantity": 6,
-            "images": ["https://images.unsplash.com/photo-1535016120720-40c6874c3b1c?w=500"]
+            "name": "DJI Mavic Air 2 Drone",
+            "description": "4K Drone for aerial photography.",
+            "category": "Photography & AV",
+            "vendor_idx": 2,
+            "rental_price_daily": 2000,
+            "rental_price_weekly": 8000,
+            "cost_price": 80000,
+            "sales_price": 0,
+            "quantity": 2,
+            "images": ["https://images.unsplash.com/photo-1579829366248-204fe8413f31?w=800"]
         },
-
-        # Outdoor & Holiday (vendor 3 - Patel Party Rentals - Repurposed as general/outdoor)
         {
-            "name": "Camping Tent (4 Person)",
-            "description": "Weather resistant dome tent for camping",
-            "category": "Outdoor Equipment",
-            "vendor_idx": 3,
+            "name": "Godox SL60W Studio Light",
+            "description": "Continuous LED video light for content creators.",
+            "category": "Photography & AV",
+            "vendor_idx": 2,
             "rental_price_daily": 500,
             "rental_price_weekly": 2000,
-            "cost_price": 6000,
-            "sales_price": 8000,
-            "quantity": 10,
-            "images": ["https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=500"]
+            "cost_price": 12000,
+            "sales_price": 0,
+            "quantity": 6,
+            "images": ["https://images.unsplash.com/photo-1527011046414-4781f1f94f8c?w=800"]
+        },
+
+        # --- Event & Party (Vendor 1) ---
+        {
+            "name": "JBL PartyBox 710",
+            "description": "800W RMS powerful sound with built-in light show.",
+            "category": "Event & Party",
+            "vendor_idx": 1,
+            "rental_price_daily": 3000,
+            "rental_price_weekly": 12000,
+            "cost_price": 65000,
+            "sales_price": 0,
+            "quantity": 4,
+            "images": ["https://images.unsplash.com/photo-1545665277-5937a5953929?w=800"]
+        },
+        {
+            "name": "Epson Home Cinema Projector",
+            "description": "1080p projector for movie nights or presentations.",
+            "category": "Event & Party",
+            "vendor_idx": 1,
+            "rental_price_daily": 1000,
+            "rental_price_weekly": 4000,
+            "cost_price": 60000,
+            "sales_price": 0,
+            "quantity": 5,
+            "images": ["https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800"]
+        },
+        {
+            "name": "Folding Tables (6ft)",
+            "description": "Sturdy tables for buffet or seating.",
+            "category": "Event & Party",
+            "vendor_idx": 1,
+            "rental_price_daily": 300,
+            "rental_price_weekly": 1000,
+            "cost_price": 4000,
+            "sales_price": 0,
+            "quantity": 20,
+            "images": ["https://images.unsplash.com/photo-1577140917170-285929cf55b7?w=800"]
+        },
+        {
+            "name": "Chiavari Gold Chairs",
+            "description": "Premium event chairs with cushions.",
+            "category": "Event & Party",
+            "vendor_idx": 1,
+            "rental_price_daily": 150,
+            "rental_price_weekly": 500,
+            "cost_price": 3000,
+            "sales_price": 0,
+            "quantity": 50,
+            "images": ["https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=800"]
+        },
+
+        # --- Daily Utilities (Vendor 3) ---
+        {
+            "name": "Bosch Professional Drill Kit",
+            "description": "Impact drill with full bit set.",
+            "category": "Daily Utilities",
+            "vendor_idx": 3,
+            "rental_price_hourly": 100,
+            "rental_price_daily": 400,
+            "rental_price_weekly": 1500,
+            "cost_price": 8000,
+            "sales_price": 0,
+            "quantity": 8,
+            "images": ["https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800"]
+        },
+        {
+            "name": "Aluminum Extension Ladder (20ft)",
+            "description": "Heavy duty extendable ladder.",
+            "category": "Daily Utilities",
+            "vendor_idx": 3,
+            "rental_price_hourly": 200,
+            "rental_price_daily": 600,
+            "rental_price_weekly": 2000,
+            "cost_price": 12000,
+            "sales_price": 0,
+            "quantity": 4,
+            "images": ["https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800"]
+        },
+        {
+            "name": "Karcher High Pressure Washer",
+            "description": "Car and patio cleaner.",
+            "category": "Daily Utilities",
+            "vendor_idx": 3,
+            "rental_price_hourly": 250,
+            "rental_price_daily": 800,
+            "rental_price_weekly": 3000,
+            "cost_price": 15000,
+            "sales_price": 0,
+            "quantity": 3,
+            "images": ["https://images.unsplash.com/photo-1520340356584-299638b950b9?w=800"]
+        },
+
+        # --- Holiday Equipment (Vendor 3) ---
+        {
+            "name": "Samsonite Hard Shell Suitcase (Set of 2)",
+            "description": "Large and carry-on luggage set.",
+            "category": "Holiday Equipment",
+            "vendor_idx": 3,
+            "rental_price_daily": 400,
+            "rental_price_weekly": 2000,
+            "cost_price": 18000,
+            "sales_price": 0,
+            "quantity": 6,
+            "images": ["https://images.unsplash.com/photo-1565538810643-b5bdbfe78f0d?w=800"]
         },
         {
             "name": "Barbecue Grill Station",
-            "description": "Propane BBQ grill with side burner",
-            "category": "Outdoor Equipment",
+            "description": "Portable charcoal grill for picnics.",
+            "category": "Holiday Equipment",
             "vendor_idx": 3,
+            "rental_price_daily": 500,
+            "rental_price_weekly": 2500,
+            "cost_price": 5000,
+            "sales_price": 0,
+            "quantity": 5,
+            "images": ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800"]
+        },
+        
+         # --- Electronics (Vendor 0 - Kulkarni) ---
+        {
+            "name": "PlayStation 5 Console",
+            "description": "PS5 with 2 controllers and 3 games.",
+            "category": "Electronics",
+            "vendor_idx": 0,
             "rental_price_daily": 1500,
             "rental_price_weekly": 6000,
-            "cost_price": 25000,
-            "sales_price": 30000,
-            "quantity": 4,
-            "images": ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500"]
+            "cost_price": 55000,
+            "sales_price": 0,
+            "quantity": 3,
+            "images": ["https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800"]
         },
         {
-            "name": "Christmas Tree (Artificial 7ft)",
-            "description": "Pre-lit artificial pine tree",
-            "category": "Event Supplies", # Or Holiday
-            "vendor_idx": 3,
-            "rental_price_daily": 800,
-            "rental_price_weekly": 3000,
-            "cost_price": 12000,
-            "sales_price": 15000,
-            "quantity": 10,
-            "images": ["https://images.unsplash.com/photo-1544084944-15a3ad6748f6?w=500"]
-        },
-         {
-            "name": "Portable Generator 2000W",
-            "description": "Quiet inverter generator for camping or events",
-            "category": "Industrial Tools",
-            "vendor_idx": 0, # Kumar Equipment
-            "rental_price_daily": 1000,
-            "rental_price_weekly": 4500,
-            "cost_price": 45000,
-            "sales_price": 55000,
-            "quantity": 5,
-            "images": ["https://images.unsplash.com/photo-1527011046414-4781f1f94f8c?w=500"]
+            "name": "Oculus Quest 2 VR Headset",
+            "description": "All-in-one VR gaming headset.",
+            "category": "Electronics",
+            "vendor_idx": 0,
+            "rental_price_daily": 1200,
+            "rental_price_weekly": 5000,
+            "cost_price": 40000,
+            "sales_price": 0,
+            "quantity": 2,
+            "images": ["https://images.unsplash.com/photo-1622979135225-d2ba269fb1bd?w=800"]
         }
     ]
     
@@ -348,9 +463,6 @@ def seed_products(db: Session, vendors, categories):
     products = []
     for p_data in products_data:
         category = category_map.get(p_data["category"])
-        # If category doesn't exist (e.g. Furniture wasn't in list before but we added it implicitly? No wait, list is in seed_categories)
-        # Let's ensure Furniture exists in seed_categories if not present, but for now map it safely.
-        
         vendor = vendors[p_data["vendor_idx"]]
         
         product = Product(
@@ -443,8 +555,8 @@ def seed_quotations(db: Session, customers, products):
             end_date = start_date + timedelta(days=random.randint(1, 7))
             
             for product in selected_products:
-                quantity = random.randint(1, 5)
-                unit_price = product.rental_price_daily or product.rental_price_hourly or 1000
+                quantity = random.randint(1, min(3, product.quantity_on_hand))
+                unit_price = product.rental_price_daily or product.rental_price_weekly/7 or 1000
                 days = (end_date - start_date).days or 1
                 total_price = unit_price * quantity * days
                 subtotal += total_price
@@ -461,7 +573,8 @@ def seed_quotations(db: Session, customers, products):
             tax_amount = subtotal * 0.18
             total_amount = subtotal + tax_amount
             
-            status = random.choice([QuotationStatus.DRAFT, QuotationStatus.SENT, QuotationStatus.CONFIRMED])
+            # 80% Draft, 20% Sent
+            status = random.choice([QuotationStatus.DRAFT, QuotationStatus.DRAFT, QuotationStatus.SENT])
             
             quotation = Quotation(
                 quotation_number=generate_quotation_number(),
@@ -535,8 +648,8 @@ def seed_orders(db: Session, customers, vendors, products):
             end_date = start_date + timedelta(days=random.randint(1, 7))
             
             for product in selected_products:
-                quantity = random.randint(1, 3)
-                unit_price = product.rental_price_daily or product.rental_price_hourly or 1000
+                quantity = random.randint(1, 2)
+                unit_price = product.rental_price_daily or product.rental_price_weekly/7 or 1000
                 days = (end_date - start_date).days or 1
                 total_price = unit_price * quantity * days
                 subtotal += total_price
@@ -551,11 +664,11 @@ def seed_orders(db: Session, customers, vendors, products):
                 })
             
             tax_amount = subtotal * 0.18
-            security_deposit = subtotal * 0.2
+            security_deposit = subtotal * 0.2  # 20% security deposit
             total_amount = subtotal + tax_amount + security_deposit
             
             status = random.choice(statuses)
-            paid_amount = total_amount if status in [OrderStatus.COMPLETED, OrderStatus.ACTIVE] else (total_amount * 0.5 if status == OrderStatus.CONFIRMED else 0)
+            paid_amount = total_amount if status in [OrderStatus.COMPLETED, OrderStatus.ACTIVE, OrderStatus.PICKED_UP, OrderStatus.RETURNED] else (total_amount * 0.5 if status == OrderStatus.CONFIRMED else 0)
             
             order = RentalOrder(
                 order_number=generate_order_number(),
@@ -608,10 +721,10 @@ def seed_invoices(db: Session, orders, customers):
     payments = []
     
     # Create invoices for orders that are confirmed or beyond
-    eligible_orders = [o for o in orders if o.status in [OrderStatus.CONFIRMED, OrderStatus.ACTIVE, OrderStatus.COMPLETED, OrderStatus.RETURNED]]
+    eligible_orders = [o for o in orders if o.status in [OrderStatus.CONFIRMED, OrderStatus.ACTIVE, OrderStatus.COMPLETED, OrderStatus.RETURNED, OrderStatus.PICKED_UP]]
     
     for order in eligible_orders:
-        status = InvoiceStatus.PAID if order.status in [OrderStatus.COMPLETED, OrderStatus.RETURNED] else InvoiceStatus.SENT
+        status = InvoiceStatus.PAID if order.paid_amount >= order.total_amount else InvoiceStatus.SENT
         
         invoice = Invoice(
             invoice_number=generate_invoice_number(),
@@ -641,8 +754,10 @@ def seed_invoices(db: Session, orders, customers):
             )
             invoice_lines.append(inv_line)
         
-        # Add deposit line
+        # Add deposit line if applicable
         if order.security_deposit > 0:
+             # Just checking if we usually add it as a line item. 
+             # In prev seed it was added.
             deposit_line = InvoiceLine(
                 invoice_id=invoice.id,
                 description="Security Deposit",
@@ -654,10 +769,11 @@ def seed_invoices(db: Session, orders, customers):
         
         # Create payment record for paid invoices
         if invoice.paid_amount > 0:
+            payment_date = order.created_at # Approximate
             payment = Payment(
                 invoice_id=invoice.id,
                 amount=invoice.paid_amount,
-                method=random.choice([PaymentMethod.ONLINE, PaymentMethod.CARD, PaymentMethod.BANK_TRANSFER]),
+                method=random.choice([PaymentMethod.ONLINE, PaymentMethod.CARD, PaymentMethod.WALLET]),
                 status=PaymentStatus.COMPLETED,
                 transaction_id=f"TXN{random.randint(100000, 999999)}"
             )
@@ -720,7 +836,7 @@ def main():
         print("\nLogin credentials:")
         print("-" * 30)
         print("Admin:    admin@example.com / admin123")
-        print("Vendor:   rajesh@rentalshop.com / vendor123")
+        print("Vendor:   kulkarni@trekrentals.com / vendor123")
         print("Customer: amit@email.com / customer123")
         print("-" * 30 + "\n")
         

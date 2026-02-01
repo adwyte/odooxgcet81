@@ -112,7 +112,7 @@ export default function OrderPaymentPage() {
 
                 // 2. Initialize Razorpay Options
                 const options = {
-                    key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SAfntQHXftrjGP', // Key ID provided by user
+                    key: orderData.key_id, // Use the key provided by backend
                     amount: orderData.amount,
                     currency: orderData.currency,
                     name: "Rental Management System",

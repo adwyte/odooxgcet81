@@ -31,7 +31,16 @@ async def create_razorpay_order(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    print(f"Items: {item}")
     try:
+        # Debug Credentials (Masked)
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+        print(f"DEBUG: Razorpay Key ID present: {bool(key_id)}")
+        print(f"DEBUG: Razorpay Secret present: {bool(key_secret)}")
+        if key_id:
+            print(f"DEBUG: Razorpay Key ID starts with: {key_id[:8]}...")
+
         razorpay_client = get_razorpay_client()
 
         data = {
@@ -43,27 +52,35 @@ async def create_razorpay_order(
                 "email": current_user.email
             }
         }
+        print(f"DEBUG: Creating Razorpay order with data: {data}")
         
         # Create Razorpay Order
         order = razorpay_client.order.create(data=data)
+        print(f"DEBUG: Razorpay Order Created: {order}")
         
         return {
             "id": order["id"],
             "amount": order["amount"],
             "currency": order["currency"],
-            "receipt": order["receipt"]
+            "receipt": order["receipt"],
+            "key_id": settings.RAZORPAY_KEY_ID
         }
     except razorpay.errors.BadRequestError as e:
+        print(f"ERROR: Razorpay BadRequest: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid payment request: {str(e)}"
         )
     except razorpay.errors.ServerError as e:
+        print(f"ERROR: Razorpay ServerError: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Razorpay server error. Please try again."
         )
     except Exception as e:
+        print(f"ERROR: General Payment Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Payment Error: {str(e)}"
