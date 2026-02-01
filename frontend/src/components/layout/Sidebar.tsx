@@ -14,7 +14,8 @@ import {
   X,
   LayoutDashboard,
   FolderTree,
-  Wallet
+  Wallet,
+  Tag
 } from 'lucide-react';
 import logo from "../../assets/logo.png";
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +60,7 @@ const navSections: NavSection[] = [
       { label: 'Admin Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin', roles: ['admin'] },
       { label: 'Users', icon: <Users size={20} />, path: '/admin/users', roles: ['admin'] },
       { label: 'Categories', icon: <FolderTree size={20} />, path: '/admin/categories', roles: ['admin'] },
+      { label: 'Coupons', icon: <Tag size={20} />, path: '/admin/coupons', roles: ['admin'] },
       { label: 'Transactions', icon: <Wallet size={20} />, path: '/admin/transactions', roles: ['admin'] },
     ],
     roles: ['admin'],

@@ -46,6 +46,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage from './pages/admin/UsersPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import TransactionsPage from './pages/admin/TransactionsPage';
+import CouponsPage from './pages/admin/CouponsPage';
 
 export default function App() {
   return (
@@ -99,6 +100,7 @@ export default function App() {
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/admin/categories" element={<CategoriesPage />} />
               <Route path="/admin/transactions" element={<TransactionsPage />} />
+              <Route path="/admin/coupons" element={<CouponsPage />} />
             </Route>
 
             {/* Redirects */}

@@ -654,3 +654,265 @@ async def adjust_wallet_balance(
         "transaction_id": str(transaction.id)
     }
 
+
+# =====================
+# Coupon Management
+# =====================
+
+from app.db.models.coupon import Coupon, DiscountType
+
+class CouponCreate(BaseModel):
+    code: str
+    description: Optional[str] = None
+    discount_type: str = "PERCENTAGE"
+    discount_value: float
+    min_order_amount: Optional[float] = None
+    max_discount_amount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    per_user_limit: Optional[int] = 1
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
+    is_active: bool = True
+
+
+class CouponUpdate(BaseModel):
+    code: Optional[str] = None
+    description: Optional[str] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    min_order_amount: Optional[float] = None
+    max_discount_amount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    per_user_limit: Optional[int] = None
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
+    is_active: Optional[bool] = None
+
+
+class CouponResponse(BaseModel):
+    id: str
+    code: str
+    description: Optional[str]
+    discount_type: str
+    discount_value: float
+    min_order_amount: Optional[float]
+    max_discount_amount: Optional[float]
+    usage_limit: Optional[int]
+    usage_count: int
+    per_user_limit: Optional[int]
+    valid_from: Optional[datetime]
+    valid_until: Optional[datetime]
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CouponListResponse(BaseModel):
+    coupons: List[CouponResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get("/coupons", response_model=CouponListResponse)
+async def get_coupons(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all coupons with pagination"""
+    query = db.query(Coupon)
+    
+    if search:
+        query = query.filter(Coupon.code.ilike(f"%{search}%"))
+    
+    if is_active is not None:
+        query = query.filter(Coupon.is_active == is_active)
+    
+    total = query.count()
+    coupons = query.order_by(desc(Coupon.created_at)).offset((page - 1) * page_size).limit(page_size).all()
+    
+    return CouponListResponse(
+        coupons=[CouponResponse(
+            id=str(c.id),
+            code=c.code,
+            description=c.description,
+            discount_type=c.discount_type.value,
+            discount_value=c.discount_value,
+            min_order_amount=c.min_order_amount,
+            max_discount_amount=c.max_discount_amount,
+            usage_limit=c.usage_limit,
+            usage_count=c.usage_count or 0,
+            per_user_limit=c.per_user_limit,
+            valid_from=c.valid_from,
+            valid_until=c.valid_until,
+            is_active=c.is_active,
+            created_at=c.created_at
+        ) for c in coupons],
+        total=total,
+        page=page,
+        page_size=page_size
+    )
+
+
+@router.post("/coupons", response_model=CouponResponse)
+async def create_coupon(
+    coupon_data: CouponCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new coupon"""
+    # Check if code already exists
+    existing = db.query(Coupon).filter(Coupon.code == coupon_data.code.upper()).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon = Coupon(
+        code=coupon_data.code.upper(),
+        description=coupon_data.description,
+        discount_type=DiscountType(coupon_data.discount_type),
+        discount_value=coupon_data.discount_value,
+        min_order_amount=coupon_data.min_order_amount,
+        max_discount_amount=coupon_data.max_discount_amount,
+        usage_limit=coupon_data.usage_limit,
+        per_user_limit=coupon_data.per_user_limit,
+        valid_from=coupon_data.valid_from,
+        valid_until=coupon_data.valid_until,
+        is_active=coupon_data.is_active
+    )
+    
+    db.add(coupon)
+    db.commit()
+    db.refresh(coupon)
+    
+    return CouponResponse(
+        id=str(coupon.id),
+        code=coupon.code,
+        description=coupon.description,
+        discount_type=coupon.discount_type.value,
+        discount_value=coupon.discount_value,
+        min_order_amount=coupon.min_order_amount,
+        max_discount_amount=coupon.max_discount_amount,
+        usage_limit=coupon.usage_limit,
+        usage_count=coupon.usage_count or 0,
+        per_user_limit=coupon.per_user_limit,
+        valid_from=coupon.valid_from,
+        valid_until=coupon.valid_until,
+        is_active=coupon.is_active,
+        created_at=coupon.created_at
+    )
+
+
+@router.get("/coupons/{coupon_id}", response_model=CouponResponse)
+async def get_coupon(
+    coupon_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get a single coupon"""
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    return CouponResponse(
+        id=str(coupon.id),
+        code=coupon.code,
+        description=coupon.description,
+        discount_type=coupon.discount_type.value,
+        discount_value=coupon.discount_value,
+        min_order_amount=coupon.min_order_amount,
+        max_discount_amount=coupon.max_discount_amount,
+        usage_limit=coupon.usage_limit,
+        usage_count=coupon.usage_count or 0,
+        per_user_limit=coupon.per_user_limit,
+        valid_from=coupon.valid_from,
+        valid_until=coupon.valid_until,
+        is_active=coupon.is_active,
+        created_at=coupon.created_at
+    )
+
+
+@router.patch("/coupons/{coupon_id}", response_model=CouponResponse)
+async def update_coupon(
+    coupon_id: str,
+    coupon_data: CouponUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a coupon"""
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    update_data = coupon_data.model_dump(exclude_unset=True)
+    
+    if 'code' in update_data:
+        update_data['code'] = update_data['code'].upper()
+        existing = db.query(Coupon).filter(Coupon.code == update_data['code'], Coupon.id != coupon_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    if 'discount_type' in update_data:
+        update_data['discount_type'] = DiscountType(update_data['discount_type'])
+    
+    for key, value in update_data.items():
+        setattr(coupon, key, value)
+    
+    db.commit()
+    db.refresh(coupon)
+    
+    return CouponResponse(
+        id=str(coupon.id),
+        code=coupon.code,
+        description=coupon.description,
+        discount_type=coupon.discount_type.value,
+        discount_value=coupon.discount_value,
+        min_order_amount=coupon.min_order_amount,
+        max_discount_amount=coupon.max_discount_amount,
+        usage_limit=coupon.usage_limit,
+        usage_count=coupon.usage_count or 0,
+        per_user_limit=coupon.per_user_limit,
+        valid_from=coupon.valid_from,
+        valid_until=coupon.valid_until,
+        is_active=coupon.is_active,
+        created_at=coupon.created_at
+    )
+
+
+@router.delete("/coupons/{coupon_id}")
+async def delete_coupon(
+    coupon_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a coupon"""
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    db.delete(coupon)
+    db.commit()
+    
+    return {"message": "Coupon deleted successfully"}
+
+
+@router.post("/coupons/{coupon_id}/toggle")
+async def toggle_coupon_status(
+    coupon_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Toggle coupon active status"""
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    coupon.is_active = not coupon.is_active
+    db.commit()
+    
+    return {"message": f"Coupon {'activated' if coupon.is_active else 'deactivated'}", "is_active": coupon.is_active}

@@ -1,12 +1,54 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ArrowLeft, Calendar } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ArrowLeft, Calendar, Ticket, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { format } from 'date-fns';
+import { paymentApi, CouponValidationResponse } from '../../api/payment';
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
   const { subtotal, tax, total } = getTotal();
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResponse | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Calculate discounted totals
+  const discountAmount = appliedCoupon?.discount_amount || 0;
+  const discountedTotal = total - discountAmount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    
+    setCouponLoading(true);
+    setCouponError(null);
+    
+    try {
+      const response = await paymentApi.validateCoupon(couponCode, total);
+      
+      if (response.valid) {
+        setAppliedCoupon(response);
+        setCouponError(null);
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(response.message);
+      }
+    } catch (err) {
+      setCouponError(err instanceof Error ? err.message : 'Failed to validate coupon');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError(null);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -153,23 +195,78 @@ export default function CartPage() {
               </div>
               <div className="pt-3 border-t border-primary-200">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-primary-900">Total</span>
-                  <span className="text-xl font-bold text-primary-900">{formatPrice(total)}</span>
+                  <span className="font-semibold text-primary-900">Subtotal + Tax</span>
+                  <span className={`text-xl font-bold ${appliedCoupon ? 'text-primary-400 line-through' : 'text-primary-900'}`}>{formatPrice(total)}</span>
                 </div>
+                {appliedCoupon && (
+                  <>
+                    <div className="flex justify-between text-green-600 mt-2">
+                      <span className="text-sm">Discount ({appliedCoupon.code})</span>
+                      <span className="font-medium">-{formatPrice(discountAmount)}</span>
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="font-semibold text-primary-900">Final Total</span>
+                      <span className="text-xl font-bold text-green-600">{formatPrice(discountedTotal)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Coupon Code */}
             <div className="mt-6">
-              <label className="label">Coupon Code</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="input flex-1"
-                  placeholder="Enter code"
-                />
-                <button className="btn btn-secondary">Apply</button>
+              <div className="flex items-center gap-2 mb-2">
+                <Ticket size={16} className="text-primary-500" />
+                <label className="text-sm font-medium text-primary-700">Have a coupon?</label>
               </div>
+              
+              {appliedCoupon ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={16} className="text-green-600" />
+                      <span className="font-mono font-medium text-green-700">{appliedCoupon.code}</span>
+                    </div>
+                    <button
+                      onClick={handleRemoveCoupon}
+                      className="p-1 hover:bg-green-100 rounded"
+                    >
+                      <X size={16} className="text-green-600" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">{appliedCoupon.message}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="input flex-1 font-mono uppercase"
+                      placeholder="Enter code"
+                    />
+                    <button 
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="btn btn-secondary flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {couponLoading ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        'Apply'
+                      )}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <div className="flex items-center gap-2 text-red-600 text-xs">
+                      <AlertCircle size={14} />
+                      {couponError}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Request Quote Button */}

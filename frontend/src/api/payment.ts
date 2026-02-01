@@ -1,5 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export interface CouponValidationResponse {
+    valid: boolean;
+    message: string;
+    code?: string;
+    discount_type?: 'PERCENTAGE' | 'FIXED';
+    discount_value?: number;
+    discount_amount?: number;
+    final_amount?: number;
+    min_order_amount?: number;
+    max_discount_amount?: number;
+}
+
 class PaymentApi {
     private baseUrl: string;
 
@@ -21,6 +33,18 @@ class PaymentApi {
             throw new Error(error.detail || 'An error occurred');
         }
         return response.json();
+    }
+
+    async validateCoupon(code: string, orderAmount: number): Promise<CouponValidationResponse> {
+        const response = await fetch(`${this.baseUrl}/validate-coupon`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                code: code.toUpperCase().trim(),
+                order_amount: orderAmount
+            })
+        });
+        return this.handleResponse(response);
     }
 
     async createRazorpayOrder(amount: number, receipt: string): Promise<{

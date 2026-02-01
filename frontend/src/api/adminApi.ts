@@ -325,6 +325,60 @@ class AdminApi {
     });
     return this.handleResponse<{ message: string; new_balance: number; transaction_id: string }>(response);
   }
+
+  // Coupon Management
+  async getCoupons(params?: { page?: number; page_size?: number; search?: string; is_active?: boolean }): Promise<PaginatedCoupons> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
+    const response = await fetch(`${this.baseUrl}/coupons?${queryParams}`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<PaginatedCoupons>(response);
+  }
+
+  async getCoupon(couponId: string): Promise<Coupon> {
+    const response = await fetch(`${this.baseUrl}/coupons/${couponId}`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<Coupon>(response);
+  }
+
+  async createCoupon(data: CouponCreate): Promise<Coupon> {
+    const response = await fetch(`${this.baseUrl}/coupons`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse<Coupon>(response);
+  }
+
+  async updateCoupon(couponId: string, data: Partial<CouponCreate>): Promise<Coupon> {
+    const response = await fetch(`${this.baseUrl}/coupons/${couponId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse<Coupon>(response);
+  }
+
+  async deleteCoupon(couponId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/coupons/${couponId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<{ message: string }>(response);
+  }
+
+  async toggleCouponStatus(couponId: string): Promise<{ message: string; is_active: boolean }> {
+    const response = await fetch(`${this.baseUrl}/coupons/${couponId}/toggle`, {
+      method: 'POST',
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<{ message: string; is_active: boolean }>(response);
+  }
 }
 
 // Additional types for wallet management
@@ -364,5 +418,43 @@ export interface AdminTransaction {
   created_at: string;
 }
 
-export const adminApi = new AdminApi();
+// Coupon Types
+export interface Coupon {
+  id: string;
+  code: string;
+  description?: string;
+  discount_type: 'PERCENTAGE' | 'FIXED';
+  discount_value: number;
+  min_order_amount?: number;
+  max_discount_amount?: number;
+  usage_limit?: number;
+  usage_count: number;
+  per_user_limit?: number;
+  valid_from?: string;
+  valid_until?: string;
+  is_active: boolean;
+  created_at: string;
+}
 
+export interface CouponCreate {
+  code: string;
+  description?: string;
+  discount_type: 'PERCENTAGE' | 'FIXED';
+  discount_value: number;
+  min_order_amount?: number;
+  max_discount_amount?: number;
+  usage_limit?: number;
+  per_user_limit?: number;
+  valid_from?: string;
+  valid_until?: string;
+  is_active?: boolean;
+}
+
+export interface PaginatedCoupons {
+  coupons: Coupon[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export const adminApi = new AdminApi();

@@ -5,3 +5,4 @@ from .order import RentalOrder
 from .reservation import Reservation
 from .invoice import Invoice
 from .wallet import Wallet, WalletTransaction
+from .coupon import Coupon, DiscountType
