@@ -22,7 +22,14 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { walletApi, WalletSummary, WalletTransaction, AddFundsRequest } from '../../api/wallet';
+import { paymentApi } from '../../api/payment';
 import { useAuth } from '../../context/AuthContext';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 type ModalType = 'add-funds' | 'withdraw' | null;
 
@@ -43,7 +50,17 @@ export default function WalletPage() {
   const [copiedReferral, setCopiedReferral] = useState(false);
 
   useEffect(() => {
+    // Load Razorpay Script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
     fetchWalletData();
+
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
   useEffect(() => {
@@ -73,9 +90,6 @@ export default function WalletPage() {
     }
   };
 
-  // Razorpay payment link
-  const RAZORPAY_PAYMENT_LINK = 'https://rzp.io/rzp/gg6pjKf';
-
   const handleAddFunds = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = Number.parseFloat(amount);
@@ -85,20 +99,61 @@ export default function WalletPage() {
 
     setSubmitting(true);
     try {
-      // Open Razorpay payment link in new tab
-      window.open(RAZORPAY_PAYMENT_LINK, '_blank');
+      // Generate a unique receipt ID
+      const receiptId = `wallet_${Date.now()}`;
       
-      // Record the pending transaction
-      const request: AddFundsRequest = {
-        amount: numAmount,
-        payment_method: paymentMethod
+      // Create Razorpay order via backend
+      const orderData = await paymentApi.createRazorpayOrder(numAmount, receiptId);
+      
+      // Initialize Razorpay Options
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SAg7IZ0DGGBRUS',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "RentPe Wallet",
+        description: `Add ₹${numAmount} to wallet`,
+        image: "/logo.png",
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          try {
+            // Record the successful transaction
+            const request: AddFundsRequest = {
+              amount: numAmount,
+              payment_method: paymentMethod,
+              external_reference: response.razorpay_payment_id
+            };
+            await walletApi.addFunds(request);
+            setModalType(null);
+            setAmount('');
+            fetchWalletData();
+            alert('Funds added successfully!');
+          } catch (err) {
+            console.error('Failed to record wallet transaction:', err);
+            alert('Payment successful but failed to update wallet. Please contact support.');
+          }
+        },
+        prefill: {
+          name: user?.firstName + ' ' + user?.lastName,
+          email: user?.email,
+          contact: user?.phoneNumber || ""
+        },
+        notes: {
+          purpose: 'wallet_topup'
+        },
+        theme: {
+          color: "#0f172a"
+        }
       };
-      await walletApi.addFunds(request);
-      setModalType(null);
-      setAmount('');
-      fetchWalletData();
+
+      // Open Razorpay Modal
+      const rzp1 = new window.Razorpay(options);
+      rzp1.on('payment.failed', function (response: any) {
+        alert('Payment Failed: ' + response.error.description);
+      });
+      rzp1.open();
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add funds');
+      setError(err instanceof Error ? err.message : 'Failed to initiate payment');
     } finally {
       setSubmitting(false);
     }
