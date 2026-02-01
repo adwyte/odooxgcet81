@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Download,
@@ -58,6 +58,16 @@ export default function InvoiceDetailPage() {
 
     fetchData();
   }, [id]);
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (!loading && invoice && searchParams.get('print') === 'true') {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+  }, [loading, invoice, searchParams]);
 
   if (loading) {
     return (

@@ -38,7 +38,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           <div className="hidden sm:block">
             <h1 className="text-lg font-semibold text-primary-900">
-              Welcome back, {user?.firstName}
+              {user?.firstName} {user?.lastName}
             </h1>
           </div>
         </div>

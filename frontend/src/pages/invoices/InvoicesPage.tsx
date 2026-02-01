@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Receipt, 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  Eye, 
-  Download, 
+import {
+  Receipt,
+  Search,
+  Filter,
+  ChevronDown,
+  Eye,
+  Download,
   Send,
-  Calendar, 
+  Calendar,
   DollarSign,
   CheckCircle,
   Clock,
@@ -60,7 +60,7 @@ export default function InvoicesPage() {
         setLoading(false);
       }
     };
-    
+
     fetchInvoices();
   }, [statusFilter]);
 
@@ -161,7 +161,7 @@ export default function InvoicesPage() {
               className="input pl-10"
             />
           </div>
-          
+
           <div className="relative">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -171,7 +171,7 @@ export default function InvoicesPage() {
               {statusFilter === 'all' ? 'All Status' : statusFilter}
               <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {showFilters && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-primary-200 rounded-xl shadow-lg py-2 z-10">
                 {['all', 'draft', 'sent', 'partial', 'paid', 'cancelled'].map((status) => (
@@ -181,9 +181,8 @@ export default function InvoicesPage() {
                       setStatusFilter(status as InvoiceStatus | 'all');
                       setShowFilters(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${
-                      statusFilter === status ? 'bg-primary-100 font-medium' : ''
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-primary-50 capitalize ${statusFilter === status ? 'bg-primary-100 font-medium' : ''
+                      }`}
                   >
                     {status === 'all' ? 'All Status' : status}
                   </button>
@@ -201,7 +200,7 @@ export default function InvoicesPage() {
             <Receipt size={48} className="mx-auto text-primary-300 mb-4" />
             <h3 className="text-lg font-medium text-primary-900 mb-2">No invoices found</h3>
             <p className="text-primary-500">
-              {searchQuery || statusFilter !== 'all' 
+              {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your search or filter criteria'
                 : 'You don\'t have any invoices yet'}
             </p>
@@ -225,7 +224,7 @@ export default function InvoicesPage() {
                       <span className="capitalize">{invoice.status}</span>
                     </span>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-4 text-sm text-primary-500 mt-3">
                     <span className="flex items-center gap-1">
                       <Calendar size={14} />
@@ -251,16 +250,20 @@ export default function InvoicesPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
-                  <Link 
+                  <Link
                     to={`/invoices/${invoice.id}`}
                     className="btn btn-secondary"
                   >
                     <Eye size={18} />
                     View
                   </Link>
-                  <button className="btn btn-ghost">
+                  <Link
+                    to={`/invoices/${invoice.id}?print=true`}
+                    className="btn btn-ghost"
+                    title="Print/Download Invoice"
+                  >
                     <Download size={18} />
-                  </button>
+                  </Link>
                   {(user?.role === 'vendor' || user?.role === 'admin') && invoice.status === 'draft' && (
                     <button className="btn btn-ghost">
                       <Send size={18} />
