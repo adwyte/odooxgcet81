@@ -339,7 +339,15 @@ export default function ReturnsPage() {
                       <Eye size={18} />
                       View Order
                     </Link>
-
+                    {returnItem.status !== 'completed' && (
+                      <Link
+                        to={`/orders/${returnItem.orderId}?returnId=${returnItem.id}&action=markReturned`}
+                        className="btn btn-primary"
+                      >
+                        <CheckCircle size={18} />
+                        Mark Returned
+                      </Link>
+                    )}
                   </div>
                 </div>
 
