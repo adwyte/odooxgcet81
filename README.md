@@ -16,9 +16,17 @@ Streamline your rental operations with integrated payments, invoicing, and sched
 
 [Features](#features) • [Installation](#installation) • [Documentation](#api-documentation) • [Contributing](#contributing)
 
-<br>
+</div>
 
-[![Demo Video](https://img.shields.io/badge/▶_Watch_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://drive.google.com/file/d/1MKjsFGA0lwCLa7TOiROyoCctdf8GmR4f/view?usp=sharing)
+---
+
+## Demo
+
+<div align="center">
+
+[![RentPe Demo](https://drive.google.com/thumbnail?id=1MKjsFGA0lwCLa7TOiROyoCctdf8GmR4f&sz=w1280)](https://drive.google.com/file/d/1MKjsFGA0lwCLa7TOiROyoCctdf8GmR4f/view?usp=sharing)
+
+*Click the image above to watch the demo video*
 
 </div>
 
